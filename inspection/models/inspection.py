@@ -20,6 +20,16 @@ class Inspection(SoftDeleteModelMixin, OrganizationUserMixin, TimestampedMixin):
         default=Status.EMITTED,
     )
 
+    inspection_type = models.ForeignKey(
+        "inspection.InspectionType",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="inspections",
+    )
+    expiration_days = models.PositiveIntegerField(null=True, blank=True)
+    expiration_hours = models.PositiveIntegerField(null=True, blank=True)
+
     title = models.CharField(max_length=255)
     description = models.TextField(null=True, blank=True)
     hash = models.UUIDField(

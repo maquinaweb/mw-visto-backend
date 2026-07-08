@@ -1,29 +1,27 @@
 from drf_writable_nested.serializers import WritableNestedModelSerializer
 from shared_auth.serializers import OrganizationUserCreateSerializerMixin
 
-from inspection.models.inspection import Inspection
-from inspection.serializers.step import InspectionStepSerializer
+from inspection.models.inspection_type import InspectionType
+from inspection.serializers.inspection_type_step import (
+    InspectionTypeStepSerializer,
+)
 
 
-class InspectionSerializer(
+class InspectionTypeSerializer(
     WritableNestedModelSerializer, OrganizationUserCreateSerializerMixin
 ):
-    steps = InspectionStepSerializer(many=True, required=False)
+    steps = InspectionTypeStepSerializer(many=True, required=False)
 
     class Meta:
-        model = Inspection
+        model = InspectionType
         fields = [
             "id",
-            "title",
+            "name",
             "description",
-            "status",
-            "hash",
-            "scheduled_to",
-            "inspection_type",
             "expiration_days",
             "expiration_hours",
             "steps",
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["id", "hash", "created_at", "updated_at"]
+        read_only_fields = ["id", "created_at", "updated_at"]

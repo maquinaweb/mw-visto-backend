@@ -30,10 +30,14 @@ class SoftDeleteAdminMixin:
 
     @admin.action(description="Restaurar selecionados")
     def restore_selected(self, request, queryset):
-        count = queryset.filter(deleted_at__isnull=False).update(deleted_at=None)
+        count = queryset.filter(deleted_at__isnull=False).update(
+            deleted_at=None
+        )
         self.message_user(request, f"{count} objeto(s) restaurado(s).")
 
     @admin.action(description="Deletar permanentemente")
     def hard_delete_selected(self, request, queryset):
         count, _ = queryset.delete()
-        self.message_user(request, f"{count} objeto(s) deletado(s) permanentemente.")
+        self.message_user(
+            request, f"{count} objeto(s) deletado(s) permanentemente."
+        )

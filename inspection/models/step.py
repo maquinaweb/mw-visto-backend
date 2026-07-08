@@ -16,15 +16,25 @@ class InspectionStep(TimestampedMixin):
         on_delete=models.CASCADE,
         related_name="steps",
     )
-    title = models.CharField(max_length=255)
-    description = models.TextField(null=True, blank=True)
-    instructions = models.TextField(
+    type_step = models.ForeignKey(
+        "inspection.InspectionTypeStep",
+        on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        help_text="Instruções para o vistoriador realizar este passo.",
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=[
+            ("pending", "Pendente"),
+            ("approved", "Aprovada"),
+            ("rejected", "Reprovada"),
+        ],
+        default="pending",
     )
     order = models.PositiveIntegerField(default=0)
-    photo = models.ImageField(upload_to=step_photo_upload_to, null=True, blank=True)
+    photo = models.ImageField(
+        upload_to=step_photo_upload_to, null=True, blank=True
+    )
 
     class Meta:
         verbose_name = "Passo de Vistoria"
@@ -32,4 +42,56 @@ class InspectionStep(TimestampedMixin):
         ordering = ["order", "created_at"]
 
     def __str__(self):
-        return f"{self.inspection.title} - Passo {self.order}: {self.title}"
+        step_title = self.type_step.title if self.type_step else "Passo"
+        return f"{self.inspection.title} - Passo {self.order}: {step_title}"
+
+    def save(self, *args, **kwargs):
+        is_new = self.pk is None
+        old_status = None
+        if not is_new:
+            try:
+                old_status = InspectionStep.objects.get(pk=self.pk).status
+            except InspectionStep.DoesNotExist:
+                pass
+
+        super().save(*args, **kwargs)
+
+        if (
+            self.status == "rejected"
+            and old_status != "rejected"
+            and self.type_step
+            and self.type_step.is_sequential
+        ):
+            steps = list(self.inspection.steps.all().order_by("order"))
+            try:
+                current_idx = steps.index(self)
+            except ValueError:
+                current_idx = -1
+                for idx, step in enumerate(steps):
+                    if step.id == self.id:
+                        current_idx = idx
+                        break
+
+            if current_idx != -1:
+                to_reject = set()
+
+                # Traverse backwards
+                for i in range(current_idx - 1, -1, -1):
+                    step = steps[i]
+                    if step.type_step and step.type_step.is_sequential:
+                        to_reject.add(step.id)
+                    else:
+                        break
+
+                # Traverse forwards
+                for i in range(current_idx + 1, len(steps)):
+                    step = steps[i]
+                    if step.type_step and step.type_step.is_sequential:
+                        to_reject.add(step.id)
+                    else:
+                        break
+
+                if to_reject:
+                    InspectionStep.objects.filter(id__in=to_reject).update(
+                        status="rejected"
+                    )

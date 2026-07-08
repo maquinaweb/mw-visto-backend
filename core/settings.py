@@ -180,7 +180,9 @@ ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = (
 )
 ACCOUNT_CONFIRM_EMAIL_ON_GET = True  # Permite confirmação via GET request
 
-EMAIL_BACKEND = config("EMAIL_BACKEND", default="django.core.mail.backends.smtp.EmailBackend")
+EMAIL_BACKEND = config(
+    "EMAIL_BACKEND", default="django.core.mail.backends.smtp.EmailBackend"
+)
 EMAIL_HOST = config("EMAIL_HOST")
 EMAIL_HOST_USER = config("EMAIL_HOST_USER")
 EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD")
@@ -264,13 +266,16 @@ SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 CLOUDFRONT_DOMAIN = config("CLOUDFRONT_DOMAIN", default="")
 CUSTOM_DOMAIN_AUTH = config("CUSTOM_DOMAIN_AUTH", default="")
-AWS_STORAGE_BUCKET_NAME = config("AWS_STORAGE_BUCKET_NAME", default="mw-visto-media")
+AWS_STORAGE_BUCKET_NAME = config(
+    "AWS_STORAGE_BUCKET_NAME", default="mw-visto-media"
+)
 AWS_S3_REGION_NAME = config("AWS_S3_REGION_NAME", default="sa-east-1")
 
 if PRODUCTION:
     AWS_ACCESS_KEY_ID = config("aws_access_key_id", default="")
     AWS_SECRET_ACCESS_KEY = config("aws_secret_access_key", default="")
     AWS_SESSION_TOKEN = config("aws_session_token", default="")
+    AWS_PROFILE = config("AWS_PROFILE", default="")
 
     # Lambda Rust para processamento de PDF
     NATIVE_PDF_LAMBDA_URL = config(

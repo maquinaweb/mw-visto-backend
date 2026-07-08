@@ -119,7 +119,9 @@ class TermoHinovaFallbackEndpoints:
     def _buscar_url_termo(self, html: str, codigo_termo: str) -> str | None:
         target = self._norm(codigo_termo)
 
-        for row in re.finditer(r"<tr[^>]*>([\s\S]*?)</tr>", html, re.IGNORECASE):
+        for row in re.finditer(
+            r"<tr[^>]*>([\s\S]*?)</tr>", html, re.IGNORECASE
+        ):
             row_html = row.group(1)
             columns = [
                 col.group(1)
@@ -136,7 +138,9 @@ class TermoHinovaFallbackEndpoints:
             if codigo_linha != target:
                 continue
 
-            href = re.search(r'<a[^>]*href="([^"]+)"', columns[1], re.IGNORECASE)
+            href = re.search(
+                r'<a[^>]*href="([^"]+)"', columns[1], re.IGNORECASE
+            )
             if href:
                 return unescape(href.group(1))
 
@@ -182,7 +186,7 @@ class TermoHinovaFallbackEndpoints:
 
         if not isinstance(payload, list) or not payload:
             return None
-        
+
         placa_normalizada = self._normalizar_placa(placa)
         encontrado = next(
             (
@@ -206,7 +210,9 @@ class TermoHinovaFallbackEndpoints:
         return f"{base}?hide_class=mensagem-aceite&url={quote(url_visualizacao, safe='')}"
 
     def _strip_html(self, value: str) -> str:
-        return re.sub(r"\s+", " ", re.sub(r"<[^>]*>", " ", unescape(value))).strip()
+        return re.sub(
+            r"\s+", " ", re.sub(r"<[^>]*>", " ", unescape(value))
+        ).strip()
 
     def _norm(self, value: str) -> str:
         return re.sub(r"[^0-9A-Za-z]", "", str(value or "")).upper()

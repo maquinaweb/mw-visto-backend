@@ -10,7 +10,9 @@ from inspection.models.inspection import Inspection
 from inspection.serializers.inspection import InspectionSerializer
 
 
-class InspectionViewSet(SoftDeleteViewSetMixin, BulkDeleteMixin, viewsets.ModelViewSet):
+class InspectionViewSet(
+    SoftDeleteViewSetMixin, BulkDeleteMixin, viewsets.ModelViewSet
+):
     serializer_class = InspectionSerializer
     pagination_class = TotalPagination
     permission_classes = [IsSameOrganization]

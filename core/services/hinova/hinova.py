@@ -11,9 +11,7 @@ from .hinova_sub.veiculo import VeiculoHinovaEndpoints
 
 class HinovaEndPoints:
     def __init__(self, organization_id: int):
-        hinova_token = HinovaToken.objects.get(
-            organization_id=organization_id
-        )
+        hinova_token = HinovaToken.objects.get(organization_id=organization_id)
         api_token = hinova_token.get_token()
         panel_token = hinova_token.token_painel or api_token
         timeout_seconds = getattr(settings, "HINOVA_TIMEOUT_SECONDS", 15)

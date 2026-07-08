@@ -10,7 +10,8 @@ class BulkDeleteMixin:
 
         if not ids:
             return Response(
-                {"detail": "Nenhum ID fornecido."}, status=status.HTTP_400_BAD_REQUEST
+                {"detail": "Nenhum ID fornecido."},
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         queryset = self.get_queryset().filter(pk__in=ids)

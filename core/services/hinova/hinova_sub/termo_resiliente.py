@@ -1,4 +1,3 @@
-
 from .termo import TermoHinovaEndpoints
 from .termo_fallback import TermoHinovaFallbackEndpoints
 from .veiculo import VeiculoHinovaEndpoints
@@ -6,10 +5,7 @@ from .veiculo import VeiculoHinovaEndpoints
 
 class TermoHinovaResilienteEndpoints(TermoHinovaEndpoints):
     def __init__(
-        self,
-        client,
-        panel_token: str,
-        timeout_seconds: int = 15
+        self, client, panel_token: str, timeout_seconds: int = 15
     ) -> None:
         super().__init__(client)
         self.veiculo = VeiculoHinovaEndpoints(client)
