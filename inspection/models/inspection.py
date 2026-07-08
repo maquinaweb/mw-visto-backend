@@ -8,16 +8,16 @@ from core.mixins.soft_delete import SoftDeleteModelMixin
 
 class Inspection(SoftDeleteModelMixin, OrganizationUserMixin, TimestampedMixin):
     class Status(models.TextChoices):
-        DRAFT = "draft", "Rascunho"
-        PENDING = "pending", "Pendente"
-        IN_PROGRESS = "in_progress", "Em Vistoria"
-        COMPLETED = "completed", "Concluído"
-        CANCELLED = "cancelled", "Cancelado"
+        EMITTED = "emitted", "Emitida"
+        VIEWED = "viewed", "Visualizada"
+        PERFORMED = "performed", "Realizada"
+        APPROVED = "approved", "Aprovada"
+        REJECTED = "rejected", "Reprovada"
 
     status = models.CharField(
         max_length=20,
         choices=Status.choices,
-        default=Status.PENDING,
+        default=Status.EMITTED,
     )
 
     title = models.CharField(max_length=255)
