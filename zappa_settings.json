@@ -1,0 +1,30 @@
+{
+    "prod": {
+        "aws_region": "sa-east-1",
+        "django_settings": "core.settings",
+        "exclude": [
+            "boto3",
+            "botocore",
+            "s3transfer",
+            "concurrent",
+            ".env",
+            ".venv",
+            ".ruff_cache",
+            ".vscode",
+            "media"
+        ],
+        "profile_name": "mw",
+        "project_name": "mw-visto",
+        "runtime": "python3.11",
+        "s3_bucket": "mw-visto-dev",
+        "environment_variables": {
+            "PRODUCTION": "True",
+            "CLOUDFRONT_DOMAIN": "dfkaru20wnmbm.cloudfront.net",
+            "SENTRY": "True"
+        },
+        "memory_size": 2048,
+        "architecture": "arm64",
+        "timeout_seconds": 300,
+        "apigateway_version": "v2"
+    }
+}
