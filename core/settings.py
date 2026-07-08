@@ -262,9 +262,12 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 USE_X_FORWARDED_HOST = True
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
+CLOUDFRONT_DOMAIN = config("CLOUDFRONT_DOMAIN", default="")
+CUSTOM_DOMAIN_AUTH = config("CUSTOM_DOMAIN_AUTH", default="")
+AWS_STORAGE_BUCKET_NAME = config("AWS_STORAGE_BUCKET_NAME", default="mw-visto-media")
+AWS_S3_REGION_NAME = config("AWS_S3_REGION_NAME", default="sa-east-1")
+
 if PRODUCTION:
-    CLOUDFRONT_DOMAIN = config("CLOUDFRONT_DOMAIN")
-    CUSTOM_DOMAIN_AUTH = config("CUSTOM_DOMAIN_AUTH")
     AWS_ACCESS_KEY_ID = config("aws_access_key_id", default="")
     AWS_SECRET_ACCESS_KEY = config("aws_secret_access_key", default="")
     AWS_SESSION_TOKEN = config("aws_session_token", default="")
@@ -275,8 +278,6 @@ if PRODUCTION:
         default="https://ew6ge6l5kyjy7lhq5civmbqndq0ctdvy.lambda-url.sa-east-1.on.aws/",
     )
 
-    AWS_STORAGE_BUCKET_NAME = "mw-visto-media"
-    AWS_S3_REGION_NAME = "sa-east-1"
     AWS_QUERYSTRING_EXPIRE = 604800
     AWS_S3_CUSTOM_DOMAIN = f"{CLOUDFRONT_DOMAIN}"
 
