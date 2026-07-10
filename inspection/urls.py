@@ -6,6 +6,7 @@ from inspection.views import (
     InspectionTypeStepViewSet,
     InspectionTypeViewSet,
     InspectionViewSet,
+    InspectionMotiveViewSet,
 )
 
 router = routers.DefaultRouter()
@@ -18,6 +19,11 @@ router.register(
     "inspection-type-steps",
     InspectionTypeStepViewSet,
     basename="inspection-type-step",
+)
+router.register(
+    "inspection-motives",
+    InspectionMotiveViewSet,
+    basename="inspection-motive",
 )
 
 urlpatterns = [

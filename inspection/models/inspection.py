@@ -27,9 +27,13 @@ class Inspection(SoftDeleteModelMixin, OrganizationUserMixin, TimestampedMixin):
         blank=True,
         related_name="inspections",
     )
-    expiration_days = models.PositiveIntegerField(null=True, blank=True)
-    expiration_hours = models.PositiveIntegerField(null=True, blank=True)
-
+    motive = models.ForeignKey(
+        "inspection.InspectionMotive",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="inspections",
+    )
     title = models.CharField(max_length=255)
     description = models.TextField(null=True, blank=True)
     hash = models.UUIDField(

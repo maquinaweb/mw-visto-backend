@@ -272,10 +272,13 @@ AWS_STORAGE_BUCKET_NAME = config(
 AWS_S3_REGION_NAME = config("AWS_S3_REGION_NAME", default="sa-east-1")
 
 if PRODUCTION:
-    AWS_ACCESS_KEY_ID = config("aws_access_key_id", default="")
-    AWS_SECRET_ACCESS_KEY = config("aws_secret_access_key", default="")
-    AWS_SESSION_TOKEN = config("aws_session_token", default="")
-    AWS_PROFILE = config("AWS_PROFILE", default="")
+    AWS_ACCESS_KEY_ID = config("aws_access_key_id", default=None) or None
+    AWS_SECRET_ACCESS_KEY = (
+        config("aws_secret_access_key", default=None) or None
+    )
+    AWS_SESSION_TOKEN = config("aws_session_token", default=None) or None
+    AWS_PROFILE = config("AWS_PROFILE", default=None) or None
+    AWS_S3_SESSION_PROFILE = AWS_PROFILE
 
     # Lambda Rust para processamento de PDF
     NATIVE_PDF_LAMBDA_URL = config(

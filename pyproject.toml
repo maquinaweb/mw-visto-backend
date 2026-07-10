@@ -30,6 +30,7 @@ dependencies = [
     "zappa",
     "maquinaweb-shared-auth>=0.2.80",
     "python-json-logger>=3.3.0",
+    "pymysql>=1.2.0",
 ]
 
 [build-system]
