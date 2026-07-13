@@ -9,13 +9,6 @@ class InspectionType(
 ):
     name = models.CharField(max_length=255)
     description = models.TextField(null=True, blank=True)
-    motive = models.ForeignKey(
-        "inspection.InspectionMotive",
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="inspection_types",
-    )
 
     class Meta:
         verbose_name = "Tipo de Vistoria"

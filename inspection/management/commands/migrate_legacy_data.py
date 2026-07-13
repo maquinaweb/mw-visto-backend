@@ -107,138 +107,102 @@ class Command(BaseCommand):
 
         try:
             with conn.cursor() as cursor:
-                # 1. Fetch unique combinations of (tipovistoria_id, tipoveiculo_id) from the legacy vistorias table
+                # 1. Clean up existing metadata for this organization
+                if not dry_run:
+                    self.stdout.write(
+                        self.style.WARNING(
+                            f"Clearing existing metadata for Org ID: {org_id}..."
+                        )
+                    )
+                    InspectionTypeStep.objects.filter(
+                        inspection_type__organization_id=org_id
+                    ).delete()
+                    InspectionType.all_objects.filter(
+                        organization_id=org_id
+                    ).delete()
+                    InspectionMotive.all_objects.filter(
+                        organization_id=org_id
+                    ).delete()
+
+                # 2. Fetch and migrate all active legacy motives (gee_tipovistoria)
                 cursor.execute("""
-                    SELECT DISTINCT tipovistoria_id, tipoveiculo_id
-                    FROM gee_vistoria
+                    SELECT * FROM gee_tipovistoria
                     WHERE data_exclusao IS NULL
                 """)
-                combinations = cursor.fetchall()
+                legacy_motives = cursor.fetchall()
                 self.stdout.write(
-                    f"\nFetched {len(combinations)} active legacy templates combinations."
+                    f"\nFetched {len(legacy_motives)} active legacy motives (gee_tipovistoria)."
                 )
 
-                # Dictionary to cache resolved InspectionMotives to avoid duplicate queries
-                motive_cache = {}
+                for motive_row in legacy_motives:
+                    motive_name = motive_row["nome"].strip()
+                    exp_days = motive_row.get("tempo_expiracao_created_at")
+                    exp_hours = motive_row.get("tempo_expiracao_started_at")
+                    created_at = motive_row.get("data_criacao") or timezone.now()
 
-                for combo in combinations:
-                    tv_id = combo["tipovistoria_id"]
-                    tveic_id = combo["tipoveiculo_id"]
+                    if dry_run:
+                        self.stdout.write(
+                            self.style.SUCCESS(
+                                f"  [DRY-RUN] Would create InspectionMotive '{motive_name}' (exp: {exp_days}d / {exp_hours}h)"
+                            )
+                        )
+                    else:
+                        new_motive = InspectionMotive.objects.create(
+                            name=motive_name,
+                            description="",
+                            expiration_days=exp_days,
+                            expiration_hours=exp_hours,
+                            organization_id=org_id,
+                        )
+                        InspectionMotive.objects.filter(
+                            pk=new_motive.pk
+                        ).update(created_at=created_at)
+                        self.stdout.write(
+                            self.style.SUCCESS(
+                                f"  -> Created InspectionMotive '{motive_name}' (ID: {new_motive.id})"
+                            )
+                        )
 
-                    if not tv_id or not tveic_id:
-                        continue
+                # 3. Fetch and migrate all active legacy vehicle types (gee_tipoveiculo)
+                cursor.execute("""
+                    SELECT * FROM gee_tipoveiculo
+                    WHERE data_exclusao IS NULL
+                """)
+                legacy_veics = cursor.fetchall()
+                self.stdout.write(
+                    f"\nFetched {len(legacy_veics)} active legacy vehicle types (gee_tipoveiculo)."
+                )
 
-                    # Fetch the legacy InspectionMotive (tipovistoria)
-                    cursor.execute(
-                        "SELECT * FROM gee_tipovistoria WHERE id = %s", (tv_id,)
-                    )
-                    tv_row = cursor.fetchone()
-                    if not tv_row or tv_row.get("data_exclusao"):
-                        continue
-
-                    # Fetch the legacy VehicleType (tipoveiculo)
-                    cursor.execute(
-                        "SELECT * FROM gee_tipoveiculo WHERE id = %s",
-                        (tveic_id,),
-                    )
-                    tveic_row = cursor.fetchone()
-                    if not tveic_row or tveic_row.get("data_exclusao"):
-                        continue
-
-                    motive_name = tv_row["nome"].strip()
-                    exp_days = tv_row.get("tempo_expiracao_created_at")
-                    exp_hours = tv_row.get("tempo_expiracao_started_at")
-                    tv_created_at = tv_row.get("data_criacao") or timezone.now()
-
-                    # Resolve or create InspectionMotive
-                    motive_key = (motive_name, org_id)
-                    if motive_key not in motive_cache:
-                        existing_motive = InspectionMotive.all_objects.filter(
-                            name=motive_name, organization_id=org_id
-                        ).first()
-
-                        if existing_motive:
-                            motive_cache[motive_key] = existing_motive
-                            # Ensure expiration configuration is updated
-                            if not dry_run and (
-                                existing_motive.expiration_days != exp_days
-                                or existing_motive.expiration_hours != exp_hours
-                            ):
-                                existing_motive.expiration_days = exp_days
-                                existing_motive.expiration_hours = exp_hours
-                                existing_motive.save()
-                        else:
-                            if dry_run:
-                                self.stdout.write(
-                                    self.style.SUCCESS(
-                                        f"  [DRY-RUN] Would create InspectionMotive '{motive_name}' (exp: {exp_days}d / {exp_hours}h)"
-                                    )
-                                )
-                                motive_cache[motive_key] = None
-                            else:
-                                new_motive = InspectionMotive.objects.create(
-                                    name=motive_name,
-                                    description="",  # Description left empty as requested
-                                    expiration_days=exp_days,
-                                    expiration_hours=exp_hours,
-                                    organization_id=org_id,
-                                )
-                                InspectionMotive.objects.filter(
-                                    pk=new_motive.pk
-                                ).update(created_at=tv_created_at)
-                                motive_cache[motive_key] = new_motive
-                                self.stdout.write(
-                                    self.style.SUCCESS(
-                                        f"  -> Created InspectionMotive '{motive_name}' (ID: {new_motive.id})"
-                                    )
-                                )
-
-                    motive_obj = motive_cache[motive_key]
-
-                    # Create/resolve InspectionType for the combo
-                    veic_name = tveic_row["nome"].strip()
-                    veic_created_at = (
-                        tveic_row.get("data_criacao") or timezone.now()
-                    )
+                for veic_row in legacy_veics:
+                    veic_name = veic_row["nome"].strip()
+                    tveic_id = veic_row["id"]
+                    veic_created_at = veic_row.get("data_criacao") or timezone.now()
 
                     self.stdout.write(
-                        f"\nProcessing InspectionType: '{veic_name}' under motive '{motive_name}'..."
+                        f"\nProcessing InspectionType: '{veic_name}'..."
                     )
 
-                    existing_type = InspectionType.all_objects.filter(
-                        name=veic_name,
-                        motive=motive_obj,
-                        organization_id=org_id,
-                    ).first()
-
-                    if existing_type:
+                    if dry_run:
                         self.stdout.write(
-                            f"  -> InspectionType '{veic_name}' for motive '{motive_name}' already exists (ID: {existing_type.id})."
+                            self.style.SUCCESS(
+                                f"  [DRY-RUN] Would create InspectionType '{veic_name}'"
+                            )
                         )
-                        inspection_type = existing_type
+                        inspection_type = None
                     else:
-                        if dry_run:
-                            self.stdout.write(
-                                self.style.SUCCESS(
-                                    f"  [DRY-RUN] Would create InspectionType '{veic_name}' linked to motive '{motive_name}'"
-                                )
+                        inspection_type = InspectionType.objects.create(
+                            name=veic_name,
+                            description="",
+                            organization_id=org_id,
+                        )
+                        InspectionType.objects.filter(
+                            pk=inspection_type.pk
+                        ).update(created_at=veic_created_at)
+                        self.stdout.write(
+                            self.style.SUCCESS(
+                                f"  -> Created InspectionType '{veic_name}' (ID: {inspection_type.id})"
                             )
-                            inspection_type = None
-                        else:
-                            inspection_type = InspectionType.objects.create(
-                                name=veic_name,
-                                description="",  # Description left empty as requested
-                                motive=motive_obj,
-                                organization_id=org_id,
-                            )
-                            InspectionType.objects.filter(
-                                pk=inspection_type.pk
-                            ).update(created_at=veic_created_at)
-                            self.stdout.write(
-                                self.style.SUCCESS(
-                                    f"  -> Created InspectionType '{veic_name}' (ID: {inspection_type.id})"
-                                )
-                            )
+                        )
 
                     # Fetch steps for this tveic_id (from gee_tipoveiculoimg)
                     cursor.execute(
@@ -267,66 +231,56 @@ class Command(BaseCommand):
                         )
 
                         if inspection_type:
-                            existing_step = InspectionTypeStep.objects.filter(
-                                inspection_type=inspection_type,
-                                title=desc,
-                            ).first()
-
-                            if existing_step:
+                            if dry_run:
                                 self.stdout.write(
-                                    f"      -> Step '{desc}' already exists."
+                                    f"      [DRY-RUN] Would create Step '{desc}' with file '{filename}'"
                                 )
                             else:
-                                if dry_run:
-                                    self.stdout.write(
-                                        f"      [DRY-RUN] Would create Step '{desc}' with file '{filename}'"
-                                    )
-                                else:
-                                    new_step = InspectionTypeStep(
-                                        inspection_type=inspection_type,
-                                        title=desc,
-                                        description=desc,
-                                        instructions=desc,
-                                        order=ordem,
-                                        is_sequential=is_seq,
-                                        allow_attachment=is_anexo,
-                                        high_resolution="high",
-                                    )
+                                new_step = InspectionTypeStep(
+                                    inspection_type=inspection_type,
+                                    title=desc,
+                                    description=desc,
+                                    instructions=desc,
+                                    order=ordem,
+                                    is_sequential=is_seq,
+                                    allow_attachment=is_anexo,
+                                    high_resolution="high",
+                                )
 
-                                    if filename:
+                                if filename:
+                                    self.stdout.write(
+                                        f"      -> Fetching image '{filename}'..."
+                                    )
+                                    img_file = get_image_content_file(
+                                        filename, legacy_path
+                                    )
+                                    if img_file:
+                                        new_step.instruction_image.save(
+                                            filename,
+                                            img_file,
+                                            save=False,
+                                        )
                                         self.stdout.write(
-                                            f"      -> Fetching image '{filename}'..."
+                                            "      -> Image saved successfully."
                                         )
-                                        img_file = get_image_content_file(
-                                            filename, legacy_path
+                                    else:
+                                        self.stdout.write(
+                                            self.style.WARNING(
+                                                f"      -> Warning: Image '{filename}' "
+                                                "not found locally or online."
+                                            )
                                         )
-                                        if img_file:
-                                            new_step.instruction_image.save(
-                                                filename,
-                                                img_file,
-                                                save=False,
-                                            )
-                                            self.stdout.write(
-                                                "      -> Image saved successfully."
-                                            )
-                                        else:
-                                            self.stdout.write(
-                                                self.style.WARNING(
-                                                    f"      -> Warning: Image '{filename}' "
-                                                    "not found locally or online."
-                                                )
-                                            )
 
-                                    new_step.save()
-                                    InspectionTypeStep.objects.filter(
-                                        pk=new_step.pk
-                                    ).update(created_at=created_at)
+                                new_step.save()
+                                InspectionTypeStep.objects.filter(
+                                    pk=new_step.pk
+                                ).update(created_at=created_at)
 
-                                    self.stdout.write(
-                                        self.style.SUCCESS(
-                                            f"      -> Created Step '{desc}' (ID: {new_step.id})"
-                                        )
+                                self.stdout.write(
+                                    self.style.SUCCESS(
+                                        f"      -> Created Step '{desc}' (ID: {new_step.id})"
                                     )
+                                )
                         else:
                             if dry_run:
                                 self.stdout.write(

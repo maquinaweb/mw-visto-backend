@@ -4,10 +4,14 @@ from django.db import models
 from shared_auth.mixins import TimestampedMixin
 
 
-def step_photo_upload_to(instance, filename):
+def step_file_upload_to(instance, filename):
     ext = filename.split(".")[-1]
     hash_id = uuid.uuid4()
     return f"inspections/{instance.inspection.hash}/steps/{hash_id}.{ext}"
+
+
+# Alias for backward compatibility with old migrations
+step_photo_upload_to = step_file_upload_to
 
 
 class InspectionStep(TimestampedMixin):
@@ -32,8 +36,8 @@ class InspectionStep(TimestampedMixin):
         default="pending",
     )
     order = models.PositiveIntegerField(default=0)
-    photo = models.ImageField(
-        upload_to=step_photo_upload_to, null=True, blank=True
+    file = models.FileField(
+        upload_to=step_file_upload_to, null=True, blank=True
     )
 
     class Meta:

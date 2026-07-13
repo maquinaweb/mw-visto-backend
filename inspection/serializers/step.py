@@ -23,7 +23,7 @@ class InspectionStepSerializer(serializers.ModelSerializer):
             "description",
             "instructions",
             "order",
-            "photo",
+            "file",
             "created_at",
             "updated_at",
         ]
