@@ -5,19 +5,22 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('inspection', '0008_remove_inspectiontype_motive'),
+        ("inspection", "0008_remove_inspectiontype_motive"),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name='inspectionstep',
-            name='photo',
+            model_name="inspectionstep",
+            name="photo",
         ),
         migrations.AddField(
-            model_name='inspectionstep',
-            name='file',
-            field=models.FileField(blank=True, null=True, upload_to=inspection.models.step.step_file_upload_to),
+            model_name="inspectionstep",
+            name="file",
+            field=models.FileField(
+                blank=True,
+                null=True,
+                upload_to=inspection.models.step.step_file_upload_to,
+            ),
         ),
     ]

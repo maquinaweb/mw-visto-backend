@@ -3,6 +3,7 @@ from inspection.views.step import InspectionStepViewSet
 from inspection.views.inspection_type import InspectionTypeViewSet
 from inspection.views.inspection_type_step import InspectionTypeStepViewSet
 from inspection.views.inspection_motive import InspectionMotiveViewSet
+from inspection.views.provider import ProviderViewSet
 
 __all__ = [
     "InspectionViewSet",
@@ -10,4 +11,5 @@ __all__ = [
     "InspectionTypeViewSet",
     "InspectionTypeStepViewSet",
     "InspectionMotiveViewSet",
+    "ProviderViewSet",
 ]

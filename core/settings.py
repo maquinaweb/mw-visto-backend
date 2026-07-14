@@ -67,6 +67,8 @@ INSTALLED_APPS = [
     "shared_auth",
     "drf_spectacular",
     "django_filters",
+    "message",
+    "sga",
     "inspection",
 ]
 

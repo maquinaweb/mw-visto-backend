@@ -4,20 +4,19 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('inspection', '0005_inspectionmotive_inspection_motive'),
+        ("inspection", "0005_inspectionmotive_inspection_motive"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='inspectionmotive',
-            name='expiration_days',
+            model_name="inspectionmotive",
+            name="expiration_days",
             field=models.PositiveIntegerField(blank=True, null=True),
         ),
         migrations.AddField(
-            model_name='inspectionmotive',
-            name='expiration_hours',
+            model_name="inspectionmotive",
+            name="expiration_hours",
             field=models.PositiveIntegerField(blank=True, null=True),
         ),
     ]

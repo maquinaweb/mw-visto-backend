@@ -5,6 +5,7 @@ from inspection.serializers.inspection_type_step import (
     InspectionTypeStepSerializer,
 )
 from inspection.serializers.inspection_motive import InspectionMotiveSerializer
+from inspection.serializers.inspector import InspectorSerializer
 
 __all__ = [
     "InspectionSerializer",
@@ -12,4 +13,5 @@ __all__ = [
     "InspectionTypeSerializer",
     "InspectionTypeStepSerializer",
     "InspectionMotiveSerializer",
+    "InspectorSerializer",
 ]

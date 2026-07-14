@@ -5,31 +5,36 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('inspection', '0006_inspectionmotive_expiration_days_and_more'),
+        ("inspection", "0006_inspectionmotive_expiration_days_and_more"),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name='inspection',
-            name='expiration_days',
+            model_name="inspection",
+            name="expiration_days",
         ),
         migrations.RemoveField(
-            model_name='inspection',
-            name='expiration_hours',
+            model_name="inspection",
+            name="expiration_hours",
         ),
         migrations.RemoveField(
-            model_name='inspectiontype',
-            name='expiration_days',
+            model_name="inspectiontype",
+            name="expiration_days",
         ),
         migrations.RemoveField(
-            model_name='inspectiontype',
-            name='expiration_hours',
+            model_name="inspectiontype",
+            name="expiration_hours",
         ),
         migrations.AddField(
-            model_name='inspectiontype',
-            name='motive',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='inspection_types', to='inspection.inspectionmotive'),
+            model_name="inspectiontype",
+            name="motive",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name="inspection_types",
+                to="inspection.inspectionmotive",
+            ),
         ),
     ]

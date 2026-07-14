@@ -4,20 +4,19 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('inspection', '0009_remove_inspectionstep_photo_inspectionstep_file'),
+        ("inspection", "0009_remove_inspectionstep_photo_inspectionstep_file"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='inspection',
-            name='notify_email',
+            model_name="inspection",
+            name="notify_email",
             field=models.BooleanField(default=False),
         ),
         migrations.AddField(
-            model_name='inspection',
-            name='notify_whatsapp',
+            model_name="inspection",
+            name="notify_whatsapp",
             field=models.BooleanField(default=False),
         ),
     ]

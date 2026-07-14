@@ -47,6 +47,17 @@ class InspectionViewSet(
         if not inspection:
             return Response({"error": "No inspection found"}, status=404)
 
+        from inspection.serializers.inspector import InspectorSerializer
+        from sga.serializers.vehicle_sga import VehicleSGASerializer
+
+        inspector_data = None
+        if hasattr(inspection, "inspector") and inspection.inspector:
+            inspector_data = InspectorSerializer(inspection.inspector).data
+
+        vehicle_sga_data = None
+        if hasattr(inspection, "vehicle_sga") and inspection.vehicle_sga:
+            vehicle_sga_data = VehicleSGASerializer(inspection.vehicle_sga).data
+
         return Response(
             {
                 "inspection_type": InspectionTypeSerializer(
@@ -59,5 +70,7 @@ class InspectionViewSet(
                 else None,
                 "notify_email": inspection.notify_email,
                 "notify_whatsapp": inspection.notify_whatsapp,
+                "inspector": inspector_data,
+                "vehicle_sga": vehicle_sga_data,
             }
         )

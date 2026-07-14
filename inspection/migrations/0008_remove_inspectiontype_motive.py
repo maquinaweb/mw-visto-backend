@@ -4,14 +4,13 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('inspection', '0007_remove_inspection_expiration_days_and_more'),
+        ("inspection", "0007_remove_inspection_expiration_days_and_more"),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name='inspectiontype',
-            name='motive',
+            model_name="inspectiontype",
+            name="motive",
         ),
     ]

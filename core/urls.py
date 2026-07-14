@@ -6,7 +6,7 @@ from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
 
 def trigger_error(request):
-    division_by_zero = 1 / 0
+    division_by_zero = 1 / 0  # noqa: F841
 
 
 urlpatterns = [
@@ -20,6 +20,7 @@ urlpatterns = [
     ),
     path("api/", include("shared_auth.urls")),
     path("api/", include("inspection.urls")),
+    path("api/", include("sga.urls")),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 if settings.DEBUG:

@@ -7,6 +7,7 @@ from inspection.views import (
     InspectionTypeViewSet,
     InspectionViewSet,
     InspectionMotiveViewSet,
+    ProviderViewSet,
 )
 
 router = routers.DefaultRouter()
@@ -25,6 +26,7 @@ router.register(
     InspectionMotiveViewSet,
     basename="inspection-motive",
 )
+router.register("providers", ProviderViewSet, basename="provider")
 
 urlpatterns = [
     path("", include(router.urls)),

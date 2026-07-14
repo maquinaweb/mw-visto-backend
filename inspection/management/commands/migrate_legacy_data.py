@@ -138,7 +138,9 @@ class Command(BaseCommand):
                     motive_name = motive_row["nome"].strip()
                     exp_days = motive_row.get("tempo_expiracao_created_at")
                     exp_hours = motive_row.get("tempo_expiracao_started_at")
-                    created_at = motive_row.get("data_criacao") or timezone.now()
+                    created_at = (
+                        motive_row.get("data_criacao") or timezone.now()
+                    )
 
                     if dry_run:
                         self.stdout.write(
@@ -176,7 +178,9 @@ class Command(BaseCommand):
                 for veic_row in legacy_veics:
                     veic_name = veic_row["nome"].strip()
                     tveic_id = veic_row["id"]
-                    veic_created_at = veic_row.get("data_criacao") or timezone.now()
+                    veic_created_at = (
+                        veic_row.get("data_criacao") or timezone.now()
+                    )
 
                     self.stdout.write(
                         f"\nProcessing InspectionType: '{veic_name}'..."
