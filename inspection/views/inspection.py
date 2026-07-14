@@ -2,6 +2,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.permissions import AllowAny
 from shared_auth.permissions import IsSameOrganization
 
 from core.mixins.bulk_delete import BulkDeleteMixin
@@ -30,6 +31,11 @@ class InspectionViewSet(
     filterset_class = InspectionFilter
     search_fields = ["title", "description"]
     ordering_fields = ["created_at", "scheduled_to"]
+
+    def get_permissions(self):
+        if self.action in ["by_hash", "verify", "finish"]:
+            return [AllowAny()]
+        return [IsSameOrganization()]
 
     queryset = (
         Inspection.objects.all()
@@ -74,3 +80,54 @@ class InspectionViewSet(
                 "vehicle_sga": vehicle_sga_data,
             }
         )
+
+    @action(detail=False, methods=["get"], url_path="by_hash")
+    def by_hash(self, request):
+        hash_val = request.query_params.get("hash")
+        if not hash_val:
+            return Response({"error": "Hash is required"}, status=400)
+        try:
+            inspection = Inspection.objects.prefetch_related("steps").get(hash=hash_val)
+            serializer = InspectionSerializer(inspection)
+            return Response(serializer.data)
+        except (Inspection.DoesNotExist, ValueError):
+            return Response({"error": "Inspection not found"}, status=404)
+
+    @action(detail=False, methods=["post"], url_path="verify")
+    def verify(self, request):
+        hash_val = request.data.get("hash")
+        document = request.data.get("document")
+
+        if not hash_val or not document:
+            return Response({"error": "Hash and document are required"}, status=400)
+
+        try:
+            inspection = Inspection.objects.get(hash=hash_val)
+        except (Inspection.DoesNotExist, ValueError):
+            return Response({"error": "Inspection not found"}, status=404)
+
+        import re
+        norm_document = re.sub(r"\D", "", document)
+
+        db_document = ""
+        if hasattr(inspection, "inspector") and inspection.inspector and inspection.inspector.contact and inspection.inspector.contact.document:
+            db_document = re.sub(r"\D", "", inspection.inspector.contact.document)
+
+        if norm_document != db_document:
+            return Response({"error": "CPF/CNPJ incorreto"}, status=400)
+
+        return Response({"status": "success", "message": "Dados verificados com sucesso"})
+
+    @action(detail=True, methods=["post"], url_path="finish")
+    def finish(self, request, pk=None):
+        try:
+            inspection = Inspection.objects.get(hash=pk)
+        except (Inspection.DoesNotExist, ValueError):
+            try:
+                inspection = Inspection.objects.get(id=pk)
+            except (Inspection.DoesNotExist, ValueError):
+                return Response({"error": "Inspection not found"}, status=404)
+
+        inspection.status = Inspection.Status.PERFORMED
+        inspection.save()
+        return Response({"status": "success", "message": "Vistoria concluída com sucesso"})

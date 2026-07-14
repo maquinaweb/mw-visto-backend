@@ -34,3 +34,10 @@ class InspectionSerializer(
             "updated_at",
         ]
         read_only_fields = ["id", "hash", "created_at", "updated_at"]
+
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        if instance.inspection_type:
+            from inspection.serializers.inspection_type import InspectionTypeSerializer
+            ret["inspection_type"] = InspectionTypeSerializer(instance.inspection_type).data
+        return ret
