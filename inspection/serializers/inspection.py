@@ -22,6 +22,8 @@ class InspectionSerializer(
             "inspection_type",
             "motive",
             "steps",
+            "notify_email",
+            "notify_whatsapp",
             "created_at",
             "updated_at",
         ]
