@@ -52,11 +52,28 @@ class SGAProvider(BaseProvider):
                 raise ValidationError("Associado não encontrado.")
             associate = res_assoc
         elif chassi:
-            # Hinova python client does not currently expose a search by chassi,
-            # but we allow the structure here for future extensibility.
-            raise ValidationError(
-                "A busca por Chassi não está configurada para este provedor."
+            veiculo_response = hinova_endpoints.veiculo.buscar_chassi(chassi)
+            if (
+                veiculo_response.status_code >= 400
+                or not veiculo_response.json()
+            ):
+                raise ValidationError(
+                    "Veículo não encontrado pelo chassi informado."
+                )
+
+            vehicle_data = veiculo_response.json()[0]
+            cod_assoc = vehicle_data.get("codigo_associado")
+            if not cod_assoc:
+                raise ValidationError(
+                    "Associado não encontrado para este veículo."
+                )
+
+            res_assoc, status_code = hinova_endpoints.associado.buscar_codigo(
+                cod_assoc
             )
+            if status_code >= 400:
+                raise ValidationError("Associado não encontrado.")
+            associate = res_assoc
 
         if not associate:
             raise ValidationError("Nenhum dado encontrado.")

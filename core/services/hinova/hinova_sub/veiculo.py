@@ -36,6 +36,11 @@ class VeiculoHinovaEndpoints:
         response = self.client.get(url)
         return response
 
+    def buscar_chassi(self, chassi) -> requests.Response:
+        url = f"buscar/{chassi}/chassi"
+        response = self.client.get(url)
+        return response
+
     def buscar_by_code(self, code) -> requests.Response:
         url = f"buscar/{code}/codigo"
         response = self.client.get(url)

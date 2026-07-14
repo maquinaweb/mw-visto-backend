@@ -28,6 +28,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = config("SECRET_KEY")
 
 DEBUG = config("DEBUG", default=False, cast=bool)
+CUSTOM_TEST_SETTING = config("CUSTOM_TEST_SETTING", default=False, cast=bool)
 
 PRODUCTION = config("PRODUCTION", default=True, cast=bool)
 

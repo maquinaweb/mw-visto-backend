@@ -1,4 +1,4 @@
-from inspection.models import InspectionMotive
+from inspection.models import InspectionMotive, Inspector
 from inspection.models import InspectionTypeStep
 from inspection.models import InspectionType
 from django.contrib import admin
@@ -22,3 +22,4 @@ admin.site.register(InspectionStep)
 admin.site.register(InspectionType)
 admin.site.register(InspectionTypeStep)
 admin.site.register(InspectionMotive)
+admin.site.register(Inspector)
