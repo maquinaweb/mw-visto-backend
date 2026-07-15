@@ -22,7 +22,6 @@ class InspectionSerializer(
             "description",
             "status",
             "hash",
-            "scheduled_to",
             "inspection_type",
             "motive",
             "steps",

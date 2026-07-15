@@ -30,7 +30,7 @@ class InspectionViewSet(
     ]
     filterset_class = InspectionFilter
     search_fields = ["title", "description"]
-    ordering_fields = ["created_at", "scheduled_to"]
+    ordering_fields = ["created_at"]
 
     def get_permissions(self):
         if self.action in ["by_hash", "verify", "finish"]:

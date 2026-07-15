@@ -40,6 +40,8 @@ class InspectionStepSerializer(serializers.ModelSerializer):
             "instruction_image",
             "order",
             "file",
+            "latitude",
+            "longitude",
             "created_at",
             "updated_at",
         ]

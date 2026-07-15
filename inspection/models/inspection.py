@@ -39,7 +39,6 @@ class Inspection(SoftDeleteModelMixin, OrganizationUserMixin, TimestampedMixin):
     hash = models.UUIDField(
         default=uuid.uuid4, editable=False, unique=True, db_index=True
     )
-    scheduled_to = models.DateTimeField(null=True, blank=True)
     notify_email = models.BooleanField(default=False)
     notify_whatsapp = models.BooleanField(default=False)
 

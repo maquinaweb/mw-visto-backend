@@ -39,6 +39,8 @@ class InspectionStep(TimestampedMixin):
     file = models.FileField(
         upload_to=step_file_upload_to, null=True, blank=True
     )
+    latitude = models.FloatField(null=True, blank=True)
+    longitude = models.FloatField(null=True, blank=True)
 
     class Meta:
         verbose_name = "Passo de Vistoria"
