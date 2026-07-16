@@ -49,3 +49,25 @@ class Inspection(SoftDeleteModelMixin, OrganizationUserMixin, TimestampedMixin):
 
     def __str__(self):
         return self.title
+
+    def save(self, *args, **kwargs):
+        is_new = self.pk is None
+        old_status = None
+        if not is_new:
+            try:
+                old_status = Inspection.objects.get(pk=self.pk).status
+            except Inspection.DoesNotExist:
+                pass
+
+        super().save(*args, **kwargs)
+
+        if (
+            self.status == self.Status.REJECTED
+            and old_status != self.Status.REJECTED
+        ):
+            # Check if there are any rejected steps
+            has_rejected_steps = self.steps.filter(status="rejected").exists()
+            if not has_rejected_steps:
+                # No steps were explicitly rejected -> reject the entire inspection (set all steps to "rejected")
+                self.steps.all().update(status="rejected")
+

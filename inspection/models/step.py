@@ -30,7 +30,7 @@ class InspectionStep(TimestampedMixin):
         max_length=20,
         choices=[
             ("pending", "Pendente"),
-            ("approved", "Aprovada"),
+            ("realized", "Realizada"),
             ("rejected", "Reprovada"),
         ],
         default="pending",
@@ -54,11 +54,18 @@ class InspectionStep(TimestampedMixin):
     def save(self, *args, **kwargs):
         is_new = self.pk is None
         old_status = None
+        old_file_name = None
         if not is_new:
             try:
-                old_status = InspectionStep.objects.get(pk=self.pk).status
+                old_step = InspectionStep.objects.get(pk=self.pk)
+                old_status = old_step.status
+                if old_step.file:
+                    old_file_name = old_step.file.name
             except InspectionStep.DoesNotExist:
                 pass
+
+        if self.file and old_file_name != self.file.name:
+            self.status = "realized"
 
         super().save(*args, **kwargs)
 
