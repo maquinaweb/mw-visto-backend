@@ -60,9 +60,6 @@ class InspectionViewSet(
         if hasattr(inspection, "inspector") and inspection.inspector:
             inspector_data = InspectorSerializer(inspection.inspector).data
 
-        vehicle_sga_data = None
-        if hasattr(inspection, "vehicle_sga") and inspection.vehicle_sga:
-            vehicle_sga_data = VehicleSGASerializer(inspection.vehicle_sga).data
 
         return Response(
             {
@@ -76,8 +73,7 @@ class InspectionViewSet(
                 else None,
                 "notify_email": inspection.notify_email,
                 "notify_whatsapp": inspection.notify_whatsapp,
-                "inspector": inspector_data,
-                "vehicle_sga": vehicle_sga_data,
+                "inspector": inspector_data
             }
         )
 
@@ -87,7 +83,9 @@ class InspectionViewSet(
         if not hash_val:
             return Response({"error": "Hash is required"}, status=400)
         try:
-            inspection = Inspection.objects.prefetch_related("steps").get(hash=hash_val)
+            inspection = Inspection.objects.prefetch_related("steps").get(
+                hash=hash_val
+            )
             serializer = InspectionSerializer(inspection)
             return Response(serializer.data)
         except (Inspection.DoesNotExist, ValueError):
@@ -99,7 +97,9 @@ class InspectionViewSet(
         document = request.data.get("document")
 
         if not hash_val or not document:
-            return Response({"error": "Hash and document are required"}, status=400)
+            return Response(
+                {"error": "Hash and document are required"}, status=400
+            )
 
         try:
             inspection = Inspection.objects.get(hash=hash_val)
@@ -107,16 +107,26 @@ class InspectionViewSet(
             return Response({"error": "Inspection not found"}, status=404)
 
         import re
+
         norm_document = re.sub(r"\D", "", document)
 
         db_document = ""
-        if hasattr(inspection, "inspector") and inspection.inspector and inspection.inspector.contact and inspection.inspector.contact.document:
-            db_document = re.sub(r"\D", "", inspection.inspector.contact.document)
+        if (
+            hasattr(inspection, "inspector")
+            and inspection.inspector
+            and inspection.inspector.contact
+            and inspection.inspector.contact.document
+        ):
+            db_document = re.sub(
+                r"\D", "", inspection.inspector.contact.document
+            )
 
         if norm_document != db_document:
             return Response({"error": "CPF/CNPJ incorreto"}, status=400)
 
-        return Response({"status": "success", "message": "Dados verificados com sucesso"})
+        return Response(
+            {"status": "success", "message": "Dados verificados com sucesso"}
+        )
 
     @action(detail=True, methods=["post"], url_path="finish")
     def finish(self, request, pk=None):
@@ -130,4 +140,6 @@ class InspectionViewSet(
 
         inspection.status = Inspection.Status.PERFORMED
         inspection.save()
-        return Response({"status": "success", "message": "Vistoria concluída com sucesso"})
+        return Response(
+            {"status": "success", "message": "Vistoria concluída com sucesso"}
+        )

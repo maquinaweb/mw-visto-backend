@@ -8,6 +8,7 @@ from inspection.views import (
     InspectionViewSet,
     InspectionMotiveViewSet,
     ProviderViewSet,
+    TorryTechQueryViewSet,
 )
 
 router = routers.DefaultRouter()
@@ -27,6 +28,9 @@ router.register(
     basename="inspection-motive",
 )
 router.register("providers", ProviderViewSet, basename="provider")
+router.register(
+    "torry-tech-queries", TorryTechQueryViewSet, basename="torry-tech-query"
+)
 
 urlpatterns = [
     path("", include(router.urls)),

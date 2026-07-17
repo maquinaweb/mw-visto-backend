@@ -1,4 +1,4 @@
-from inspection.models import InspectionMotive, Inspector
+from inspection.models import InspectionMotive, Inspector, TorryTechQuery
 from inspection.models import InspectionTypeStep
 from inspection.models import InspectionType
 from django.contrib import admin
@@ -17,9 +17,22 @@ class InspectionAdmin(SoftDeleteAdminMixin, admin.ModelAdmin):
     ]
 
 
+class TorryTechQueryAdmin(SoftDeleteAdminMixin, admin.ModelAdmin):
+    list_display = [
+        "plate",
+        "chassi",
+        "cons",
+        "status_consulta",
+        "success",
+        "created_at",
+    ]
+    search_fields = ["plate", "chassi", "id_pesquisa"]
+
+
 admin.site.register(Inspection, InspectionAdmin)
 admin.site.register(InspectionStep)
 admin.site.register(InspectionType)
 admin.site.register(InspectionTypeStep)
 admin.site.register(InspectionMotive)
 admin.site.register(Inspector)
+admin.site.register(TorryTechQuery, TorryTechQueryAdmin)

@@ -70,4 +70,3 @@ class Inspection(SoftDeleteModelMixin, OrganizationUserMixin, TimestampedMixin):
             if not has_rejected_steps:
                 # No steps were explicitly rejected -> reject the entire inspection (set all steps to "rejected")
                 self.steps.all().update(status="rejected")
-

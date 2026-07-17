@@ -6,6 +6,7 @@ from inspection.serializers.inspection_type_step import (
 )
 from inspection.serializers.inspection_motive import InspectionMotiveSerializer
 from inspection.serializers.inspector import InspectorSerializer
+from inspection.serializers.torry_tech_query import TorryTechQuerySerializer
 
 __all__ = [
     "InspectionSerializer",
@@ -14,4 +15,5 @@ __all__ = [
     "InspectionTypeStepSerializer",
     "InspectionMotiveSerializer",
     "InspectorSerializer",
+    "TorryTechQuerySerializer",
 ]

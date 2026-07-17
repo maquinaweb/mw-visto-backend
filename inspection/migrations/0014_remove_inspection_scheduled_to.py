@@ -4,14 +4,13 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('inspection', '0013_inspectionstep_latitude_inspectionstep_longitude'),
+        ("inspection", "0013_inspectionstep_latitude_inspectionstep_longitude"),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name='inspection',
-            name='scheduled_to',
+            model_name="inspection",
+            name="scheduled_to",
         ),
     ]
