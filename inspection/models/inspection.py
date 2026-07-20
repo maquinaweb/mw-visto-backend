@@ -42,6 +42,8 @@ class Inspection(SoftDeleteModelMixin, OrganizationUserMixin, TimestampedMixin):
     )
     notify_email = models.BooleanField(default=False)
     notify_whatsapp = models.BooleanField(default=False)
+    signature_protocol_id = models.UUIDField(null=True, blank=True)
+    signature_hash = models.CharField(max_length=255, null=True, blank=True)
 
     class Meta:
         verbose_name = "Vistoria"

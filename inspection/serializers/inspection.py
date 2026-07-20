@@ -1,4 +1,5 @@
 from drf_writable_nested.serializers import WritableNestedModelSerializer
+from rest_framework import serializers
 from shared_auth.serializers import OrganizationUserCreateSerializerMixin
 
 from inspection.models.inspection import Inspection
@@ -13,6 +14,9 @@ class InspectionSerializer(
     steps = InspectionStepSerializer(many=True, required=False)
     inspector = InspectorSerializer(required=False, allow_null=True)
     vehicle_sga = VehicleSGASerializer(required=False, allow_null=True)
+    signature = serializers.JSONField(
+        required=False, write_only=True, allow_null=True
+    )
 
     class Meta:
         model = Inspection
@@ -29,6 +33,9 @@ class InspectionSerializer(
             "vehicle_sga",
             "notify_email",
             "notify_whatsapp",
+            "signature_protocol_id",
+            "signature_hash",
+            "signature",
             "created_at",
             "updated_at",
         ]

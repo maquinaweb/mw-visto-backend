@@ -71,11 +71,12 @@ INSTALLED_APPS = [
     "message",
     "sga",
     "inspection",
+    "signature",
 ]
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
-    "core.observability.middleware.PerformanceMiddleware",
+    # "core.observability.middleware.PerformanceMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
