@@ -23,3 +23,14 @@ class InspectionTypeSerializer(
             "updated_at",
         ]
         read_only_fields = ["id", "created_at", "updated_at"]
+
+    def to_internal_value(self, data):
+        if "steps" in data and isinstance(data["steps"], list):
+            for step in data["steps"]:
+                if "id" in step:
+                    val = step["id"]
+                    if isinstance(val, str) and not val.isdigit():
+                        del step["id"]
+                    elif val is None:
+                        del step["id"]
+        return super().to_internal_value(data)
