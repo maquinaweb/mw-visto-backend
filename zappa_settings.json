@@ -25,6 +25,12 @@
         "memory_size": 2048,
         "architecture": "arm64",
         "timeout_seconds": 300,
-        "apigateway_version": "v2"
+        "apigateway_version": "v2",
+        "events": [
+            {
+                "function": "inspection.tasks.expire_inspections.expire_inspections_task",
+                "expression": "rate(1 hour)"
+            }
+        ]
     }
 }

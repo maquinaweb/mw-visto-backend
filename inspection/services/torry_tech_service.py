@@ -64,6 +64,9 @@ class TorryTechService:
                 f"[TorryTech] Cache Hit: Encontrada consulta anterior id={cached_query.id} para "
                 f"placa={plate}/chassi={chassi}. Clonando resultados."
             )
+            print(
+                f"[TorryTech] Cache Hit - Dados da Consulta Completa: {cached_query.response_data}"
+            )
             new_query = TorryTechQuery.objects.create(
                 organization_id=inspection.organization_id,
                 inspection=inspection,
@@ -142,16 +145,19 @@ class TorryTechService:
         message = response_json.get("message", "")
         id_pesquisa = response_json.get("id_pesquisa")
         status_consulta = response_json.get("status_consulta", "Processando")
+        dados_veiculo = response_json.get("dados_veiculo")
+        link_impressao = response_json.get("link_impressao")
 
         logger.info(
             f"[TorryTech] Resposta da API Especial.php: success={success}, message='{message}', "
-            f"id_pesquisa={id_pesquisa}, status_consulta={status_consulta}"
+            f"id_pesquisa={id_pesquisa}, status_consulta={status_consulta}, tem_dados_veiculo={bool(dados_veiculo)}"
         )
+        print(f"[TorryTech] Resposta Completa Especial.php: {response_json}")
 
         # Check for already performed query message
         is_already_done = "já foi realizada" in message.lower()
 
-        if not success and not is_already_done:
+        if not success and not is_already_done and not dados_veiculo:
             logger.error(f"[TorryTech] Consulta retornou erro: {message}")
             query_record = TorryTechQuery.objects.create(
                 organization_id=inspection.organization_id,
@@ -168,7 +174,10 @@ class TorryTechService:
             )
             return query_record
 
-        # If success, or already done, we create/save the query record and try to fetch results
+        # If Especial.php already returned full vehicle data, mark as "Pronta"
+        if dados_veiculo or (success and link_impressao):
+            status_consulta = "Pronta"
+
         query_record = TorryTechQuery.objects.create(
             organization_id=inspection.organization_id,
             inspection=inspection,
@@ -178,15 +187,16 @@ class TorryTechService:
             uf=uf,
             id_pesquisa=id_pesquisa,
             status_consulta=status_consulta,
-            success=True if success else False,
+            success=True if (success or status_consulta == "Pronta") else False,
             message=message,
+            link_impressao=link_impressao or "",
             response_data=response_json,
         )
 
-        if id_pesquisa:
+        if status_consulta != "Pronta" and id_pesquisa:
             logger.info(
-                f"[TorryTech] Cadastro realizado com sucesso na Torry Tech. "
-                f"Consultando resultados imediatos para id_pesquisa={id_pesquisa}..."
+                f"[TorryTech] Cadastro realizado com sucesso na Torry Tech (id_pesquisa={id_pesquisa}). "
+                f"Consultando resultados via Api/Consulta..."
             )
             return cls.refresh_query(query_record)
 
@@ -198,6 +208,17 @@ class TorryTechService:
             logger.warning(
                 f"[TorryTech] Falha ao tentar atualizar status da consulta {query_record.id}: "
                 f"id_pesquisa está ausente."
+            )
+            return query_record
+
+        # If query is already Pronta and has vehicle data, do not downgrade it
+        if (
+            query_record.status_consulta == "Pronta"
+            and query_record.response_data
+            and query_record.response_data.get("dados_veiculo")
+        ):
+            print(
+                f"[TorryTech] Consulta {query_record.id_pesquisa} já está Pronta. Dados: {query_record.response_data}"
             )
             return query_record
 
@@ -224,42 +245,50 @@ class TorryTechService:
             return query_record
 
         success = response_json.get("success", False)
-        status_consulta = response_json.get(
-            "status_consulta", query_record.status_consulta
-        )
+        status_consulta = response_json.get("status_consulta", None)
         message = response_json.get("message", query_record.message)
         link_impressao = response_json.get(
             "link_impressao", query_record.link_impressao
         )
+        dados_veiculo = response_json.get("dados_veiculo")
 
         logger.info(
             f"[TorryTech] Resposta da API de Consulta: success={success}, status_consulta={status_consulta}, "
             f"message='{message}'"
         )
+        print(f"[TorryTech] Resposta Completa Api/Consulta: {response_json}")
 
-        if success:
-            query_record.status_consulta = status_consulta
+        if success or dados_veiculo:
+            query_record.status_consulta = status_consulta or "Pronta"
             query_record.message = message
             query_record.link_impressao = link_impressao
             query_record.response_data = response_json
             query_record.success = True
             query_record.save()
             logger.info(
-                f"[TorryTech] Consulta {query_record.id_pesquisa} atualizada com sucesso para status={status_consulta}."
+                f"[TorryTech] Consulta {query_record.id_pesquisa} atualizada com sucesso para status={query_record.status_consulta}."
             )
         else:
-            if (
+            has_existing_dados = query_record.response_data and bool(
+                query_record.response_data.get("dados_veiculo")
+            )
+            if has_existing_dados:
+                query_record.status_consulta = "Pronta"
+                query_record.success = True
+            elif (
                 "processando" in message.lower()
                 or status_consulta == "Processando"
             ):
                 query_record.status_consulta = "Processando"
+                query_record.message = message
+                query_record.response_data = response_json
             else:
                 query_record.status_consulta = "Falha"
+                query_record.message = message
+                query_record.response_data = response_json
                 logger.error(
                     f"[TorryTech] Consulta {query_record.id_pesquisa} falhou durante atualização: {message}"
                 )
-            query_record.message = message
-            query_record.response_data = response_json
             query_record.save()
 
         return query_record

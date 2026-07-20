@@ -13,6 +13,7 @@ class Inspection(SoftDeleteModelMixin, OrganizationUserMixin, TimestampedMixin):
         PERFORMED = "performed", "Realizada"
         APPROVED = "approved", "Aprovada"
         REJECTED = "rejected", "Reprovada"
+        EXPIRED = "expired", "Expirada"
 
     status = models.CharField(
         max_length=20,
