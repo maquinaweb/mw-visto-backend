@@ -5,7 +5,7 @@ from inspection.models.step import InspectionStep
 
 class InspectionStepSerializer(serializers.ModelSerializer):
     title = serializers.CharField(source="type_step.title", read_only=True)
-    description = serializers.CharField(
+    type_description = serializers.CharField(
         source="type_step.description", read_only=True
     )
     instructions = serializers.CharField(
@@ -32,6 +32,7 @@ class InspectionStepSerializer(serializers.ModelSerializer):
             "type_step",
             "status",
             "title",
+            "type_description",
             "description",
             "instructions",
             "is_sequential",

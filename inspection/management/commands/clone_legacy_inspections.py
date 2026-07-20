@@ -344,15 +344,36 @@ class Command(BaseCommand):
                             )
                         else:
                             # Try to locate the matching InspectionTypeStep
-                            type_step = InspectionTypeStep.objects.filter(
-                                inspection_type=type_obj,
-                                title__iexact=step_desc,
-                            ).first()
-                            if not type_step:
-                                # Fallback to any step or create one
-                                type_step = InspectionTypeStep.objects.filter(
+                            all_type_steps = list(
+                                InspectionTypeStep.objects.filter(
                                     inspection_type=type_obj
-                                ).first()
+                                )
+                            )
+                            type_step = None
+                            # 1. Try exact match (case-insensitive)
+                            for ts in all_type_steps:
+                                if (
+                                    ts.title.strip().lower()
+                                    == step_desc.strip().lower()
+                                ):
+                                    type_step = ts
+                                    break
+                            # 2. Try substring match (if one title contains the other)
+                            if not type_step:
+                                for ts in all_type_steps:
+                                    t1 = ts.title.strip().lower()
+                                    t2 = step_desc.strip().lower()
+                                    if t1 in t2 or t2 in t1:
+                                        type_step = ts
+                                        break
+                            # 3. Create step on the fly if still not found
+                            if not type_step:
+                                current_count = len(all_type_steps)
+                                type_step = InspectionTypeStep.objects.create(
+                                    inspection_type=type_obj,
+                                    title=step_desc,
+                                    order=current_count + 1,
+                                )
 
                             # Load file content
                             img_content = None

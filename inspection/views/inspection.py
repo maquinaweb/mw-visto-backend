@@ -54,12 +54,10 @@ class InspectionViewSet(
             return Response({"error": "No inspection found"}, status=404)
 
         from inspection.serializers.inspector import InspectorSerializer
-        from sga.serializers.vehicle_sga import VehicleSGASerializer
 
         inspector_data = None
         if hasattr(inspection, "inspector") and inspection.inspector:
             inspector_data = InspectorSerializer(inspection.inspector).data
-
 
         return Response(
             {
@@ -73,7 +71,7 @@ class InspectionViewSet(
                 else None,
                 "notify_email": inspection.notify_email,
                 "notify_whatsapp": inspection.notify_whatsapp,
-                "inspector": inspector_data
+                "inspector": inspector_data,
             }
         )
 
@@ -142,4 +140,17 @@ class InspectionViewSet(
         inspection.save()
         return Response(
             {"status": "success", "message": "Vistoria concluída com sucesso"}
+        )
+
+    @action(detail=True, methods=["post"], url_path="analyze")
+    def analyze(self, request, pk=None):
+        inspection = self.get_object()
+        from inspection.tasks import analyze_steps_task
+
+        analyze_steps_task(inspection.id)
+        return Response(
+            {
+                "status": "success",
+                "message": "Análise de IA das etapas iniciada.",
+            }
         )

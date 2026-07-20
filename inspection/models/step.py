@@ -41,6 +41,7 @@ class InspectionStep(TimestampedMixin):
     )
     latitude = models.FloatField(null=True, blank=True)
     longitude = models.FloatField(null=True, blank=True)
+    description = models.TextField(null=True, blank=True)
 
     class Meta:
         verbose_name = "Passo de Vistoria"
