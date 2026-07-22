@@ -156,3 +156,37 @@ def process_signature_integration(request, inspection, signature_data):
                 "signature_protocol": f"Falha ao gerar o termo no MW Sign: {str(e)}"
             }
         )
+
+
+def approve_inspection_signature_process(
+    request, inspection, is_approve_all=False
+):
+    """
+    Aprova os signatários do protocolo no MW Sign e atualiza o estado no Ativador.
+    """
+    if not (
+        hasattr(inspection, "signature_protocol_id")
+        and inspection.signature_protocol_id
+    ):
+        return
+
+    try:
+        auth_header = request.headers.get("Authorization")
+        org_header = request.headers.get("X-Organization")
+        sig_service = SignatureService(
+            auth_header=auth_header, org_header=org_header
+        )
+        sig_service.approve_protocol_signatories(
+            inspection.signature_protocol_id
+        )
+
+        from inspection.services.activator_sync import (
+            sync_signature_approval_with_activator,
+        )
+
+        sync_signature_approval_with_activator(
+            inspection, is_approve_all=is_approve_all
+        )
+    except Exception as e:
+        logger.error(f"Erro ao processar aprovação de assinatura: {e}")
+        raise

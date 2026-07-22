@@ -19,7 +19,7 @@
         "s3_bucket": "mw-visto-dev",
         "environment_variables": {
             "PRODUCTION": "True",
-            "CLOUDFRONT_DOMAIN": "dfkaru20wnmbm.cloudfront.net",
+            "CLOUDFRONT_DOMAIN": "d97lrwy3pco77.cloudfront.net",
             "SENTRY": "True"
         },
         "memory_size": 2048,

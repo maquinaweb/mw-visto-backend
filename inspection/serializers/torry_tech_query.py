@@ -1,8 +1,11 @@
 from rest_framework import serializers
+from shared_auth.serializers import OrganizationCreateSerializerMixin
 from inspection.models.torry_tech_query import TorryTechQuery
 
 
-class TorryTechQuerySerializer(serializers.ModelSerializer):
+class TorryTechQuerySerializer(
+    OrganizationCreateSerializerMixin, serializers.ModelSerializer
+):
     class Meta:
         model = TorryTechQuery
         fields = [

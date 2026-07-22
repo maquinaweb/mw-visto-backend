@@ -1,9 +1,10 @@
 import logging
+
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import filters, viewsets
+from rest_framework import filters
 from rest_framework.decorators import action
-from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
+from rest_framework.response import Response
 from shared_auth.permissions import IsSameOrganization
 
 from core.mixins.bulk_delete import BulkDeleteMixin
@@ -11,18 +12,25 @@ from core.mixins.soft_delete import SoftDeleteViewSetMixin
 from core.pagination import TotalPagination
 from inspection.filters.inspection import InspectionFilter
 from inspection.models.inspection import Inspection
-from inspection.serializers.inspection import InspectionSerializer
 from inspection.serializers import (
-    InspectionTypeSerializer,
     InspectionMotiveSerializer,
+    InspectionTypeSerializer,
 )
+from inspection.serializers.inspection import InspectionSerializer
+
+from shared_auth.mixins import LoggedOrganizationMixin
 
 logger = logging.getLogger(__name__)
 
 
 class InspectionViewSet(
-    SoftDeleteViewSetMixin, BulkDeleteMixin, viewsets.ModelViewSet
+    SoftDeleteViewSetMixin, BulkDeleteMixin, LoggedOrganizationMixin
 ):
+    queryset = (
+        Inspection.objects.all()
+        .order_by("-created_at")
+        .prefetch_related("steps")
+    )
     serializer_class = InspectionSerializer
     pagination_class = TotalPagination
 
@@ -39,6 +47,12 @@ class InspectionViewSet(
                 self.request, instance, signature_data
             )
 
+        from inspection.services.activator_sync import (
+            sync_inspection_with_activator,
+        )
+
+        sync_inspection_with_activator(instance)
+
     permission_classes = [IsSameOrganization]
     filter_backends = [
         filters.SearchFilter,
@@ -53,12 +67,6 @@ class InspectionViewSet(
         if self.action in ["by_hash", "verify", "finish"]:
             return [AllowAny()]
         return [IsSameOrganization()]
-
-    queryset = (
-        Inspection.objects.all()
-        .order_by("-created_at")
-        .prefetch_related("steps")
-    )
 
     @action(detail=False, methods=["get"], url_path="default-by-last")
     def default_by_last(self, request, *args, **kwargs):
@@ -77,6 +85,7 @@ class InspectionViewSet(
             inspector_data = InspectorSerializer(inspection.inspector).data
 
         create_signature_protocol = False
+        protocol_data = None
         signature_auth_document = False
         signature_auth_selfie = False
         signature_auth_manual = False
@@ -233,4 +242,56 @@ class InspectionViewSet(
                 "status": "success",
                 "message": "Análise de IA das etapas iniciada.",
             }
+        )
+
+    @action(detail=True, methods=["post"], url_path="approve-all")
+    def approve_all(self, request, pk=None):
+        inspection = self.get_object()
+
+        # 1. Aprovar a vistoria (o save() altera para APROVADO_PARA_CORRECAO / 30 no Ativador)
+        inspection.status = Inspection.Status.APPROVED
+        inspection.save()
+
+        # 2. Se houver protocolo de assinatura, aprova os signatários e avança no Ativador
+        from signature.services.integration import (
+            approve_inspection_signature_process,
+        )
+
+        approve_inspection_signature_process(
+            request, inspection, is_approve_all=True
+        )
+
+        return Response(
+            {
+                "status": "success",
+                "message": "Vistoria e assinatura aprovadas com sucesso.",
+            }
+        )
+
+    @action(detail=True, methods=["post"], url_path="approve-signature")
+    def approve_signature(self, request, pk=None):
+        inspection = self.get_object()
+        if inspection.status != Inspection.Status.APPROVED:
+            return Response(
+                {
+                    "error": "A vistoria precisa ser aprovada antes de aprovar a assinatura."
+                },
+                status=400,
+            )
+
+        from signature.services.integration import (
+            approve_inspection_signature_process,
+        )
+
+        try:
+            approve_inspection_signature_process(
+                request, inspection, is_approve_all=False
+            )
+        except Exception:
+            return Response(
+                {"error": "Erro ao aprovar assinatura."}, status=500
+            )
+
+        return Response(
+            {"status": "success", "message": "Assinatura aprovada com sucesso."}
         )

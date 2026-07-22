@@ -1,7 +1,8 @@
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import filters, viewsets
+from rest_framework import filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from shared_auth.mixins import LoggedOrganizationMixin
 from shared_auth.permissions import IsSameOrganization
 
 from core.mixins.bulk_delete import BulkDeleteMixin
@@ -13,8 +14,9 @@ from inspection.serializers.inspection_type import InspectionTypeSerializer
 
 
 class InspectionTypeViewSet(
-    SoftDeleteViewSetMixin, BulkDeleteMixin, viewsets.ModelViewSet
+    SoftDeleteViewSetMixin, BulkDeleteMixin, LoggedOrganizationMixin
 ):
+    queryset = InspectionType.objects.all().order_by("-created_at")
     serializer_class = InspectionTypeSerializer
     pagination_class = TotalPagination
     permission_classes = [IsSameOrganization]
@@ -25,11 +27,6 @@ class InspectionTypeViewSet(
     ]
     search_fields = ["name", "description"]
     ordering_fields = ["created_at", "name"]
-
-    def get_queryset(self):
-        return InspectionType.objects.filter(
-            organization_id=self.request.organization_id
-        ).order_by("-created_at")
 
     @action(detail=False, methods=["post"], url_path="upload-url")
     def get_upload_url(self, request):

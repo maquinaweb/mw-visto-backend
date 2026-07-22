@@ -1,7 +1,8 @@
-from rest_framework import viewsets, filters
+from rest_framework import filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
+from shared_auth.mixins import LoggedOrganizationMixin
 from shared_auth.permissions import IsSameOrganization
 
 from core.pagination import TotalPagination
@@ -10,23 +11,14 @@ from inspection.serializers.torry_tech_query import TorryTechQuerySerializer
 from inspection.filters.torry_tech_query import TorryTechQueryFilter
 
 
-class TorryTechQueryViewSet(viewsets.ModelViewSet):
+class TorryTechQueryViewSet(LoggedOrganizationMixin):
+    queryset = TorryTechQuery.objects.all().order_by("-created_at")
     serializer_class = TorryTechQuerySerializer
     pagination_class = TotalPagination
     permission_classes = [IsSameOrganization]
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
     filterset_class = TorryTechQueryFilter
     ordering_fields = ["created_at"]
-
-    def get_queryset(self):
-        if (
-            hasattr(self.request, "organization_id")
-            and self.request.organization_id
-        ):
-            return TorryTechQuery.objects.filter(
-                organization_id=self.request.organization_id
-            )
-        return TorryTechQuery.objects.none()
 
     def create(self, request, *args, **kwargs):
         inspection_id = request.data.get("inspection")

@@ -111,3 +111,22 @@ class SignatureService:
         )
         response.raise_for_status()
         return response.json()
+
+    def approve_protocol_signatories(self, protocol_hash):
+        protocol_data = self.get_protocol_by_hash(protocol_hash)
+        if not protocol_data:
+            return
+        signatories = protocol_data.get("signatories") or []
+        for signatory in signatories:
+            sig_id = signatory.get("id")
+            if sig_id:
+                try:
+                    url = f"{self.base_url}/signatories/{sig_id}/approve/"
+                    response = requests.post(
+                        url, headers=self.headers, timeout=30
+                    )
+                    response.raise_for_status()
+                except Exception as sig_err:
+                    logger.error(
+                        f"Erro ao aprovar signatário {sig_id}: {sig_err}"
+                    )

@@ -5,6 +5,7 @@ from inspection.views.inspection_type_step import InspectionTypeStepViewSet
 from inspection.views.inspection_motive import InspectionMotiveViewSet
 from inspection.views.provider import ProviderViewSet
 from inspection.views.torry_tech_query import TorryTechQueryViewSet
+from inspection.views.automation_rule import AutomationRuleViewSet
 
 __all__ = [
     "InspectionViewSet",
@@ -14,4 +15,5 @@ __all__ = [
     "InspectionMotiveViewSet",
     "ProviderViewSet",
     "TorryTechQueryViewSet",
+    "AutomationRuleViewSet",
 ]

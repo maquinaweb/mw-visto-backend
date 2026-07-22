@@ -1,5 +1,6 @@
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import filters, viewsets
+from rest_framework import filters
+from shared_auth.mixins import LoggedOrganizationMixin
 from shared_auth.permissions import IsSameOrganization
 
 from core.mixins.bulk_delete import BulkDeleteMixin
@@ -10,8 +11,9 @@ from inspection.serializers.inspection_motive import InspectionMotiveSerializer
 
 
 class InspectionMotiveViewSet(
-    SoftDeleteViewSetMixin, BulkDeleteMixin, viewsets.ModelViewSet
+    SoftDeleteViewSetMixin, BulkDeleteMixin, LoggedOrganizationMixin
 ):
+    queryset = InspectionMotive.objects.all().order_by("-created_at")
     serializer_class = InspectionMotiveSerializer
     pagination_class = TotalPagination
     permission_classes = [IsSameOrganization]
@@ -22,8 +24,3 @@ class InspectionMotiveViewSet(
     ]
     search_fields = ["name", "description"]
     ordering_fields = ["created_at", "name"]
-
-    def get_queryset(self):
-        return InspectionMotive.objects.filter(
-            organization_id=self.request.organization_id
-        ).order_by("-created_at")

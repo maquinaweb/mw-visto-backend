@@ -318,7 +318,7 @@ HINOVA_URL = "https://api.hinova.com.br/api/sga/v2/"
 ACTIVATOR_URL = config(
     "ACTIVATOR_URL", default="https://ativador.clubeautos.com.br"
 )
-SYSTEM_ID = 3
+SYSTEM_ID = 8
 
 # Performance Observability
 PERF_SAMPLE_RATE = (
