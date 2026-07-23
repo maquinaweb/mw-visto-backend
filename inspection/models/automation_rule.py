@@ -39,6 +39,12 @@ class AutomationRule(OrganizationMixin, TimestampedMixin, SoftDeleteModelMixin):
     target_situation_code = models.IntegerField(
         help_text="Código da situação no Ativador/SGA"
     )
+    target_situation_name = models.CharField(
+        max_length=255,
+        blank=True,
+        default="",
+        help_text="Nome da situação no Ativador/SGA",
+    )
     observation_template = models.CharField(
         max_length=255, blank=True, default=""
     )
@@ -51,7 +57,10 @@ class AutomationRule(OrganizationMixin, TimestampedMixin, SoftDeleteModelMixin):
     def save(self, *args, **kwargs):
         if not self.name or not self.name.strip():
             event_label = self.get_event_display()
-            self.name = f"{event_label} ➔ Cód. {self.target_situation_code}"
+            sit_label = self.target_situation_name
+            self.name = (
+                f"{event_label} ➔ {sit_label}" if sit_label else event_label
+            )
         super().save(*args, **kwargs)
 
     def __str__(self):

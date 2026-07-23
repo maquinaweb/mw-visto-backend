@@ -36,6 +36,7 @@ class AutomationRuleSerializer(OrganizationCreateSerializerMixin):
             "inspection_motive",
             "inspection_motive_detail",
             "target_situation_code",
+            "target_situation_name",
             "observation_template",
             "created_at",
             "updated_at",
