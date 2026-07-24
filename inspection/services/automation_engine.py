@@ -88,10 +88,22 @@ class AutomationEngine:
                 observacao=obs,
             )
             status_code = res.status_code if res else "Sem resposta"
+            if res and res.status_code >= 400:
+                err_text = res.text or ""
+                if "já está" in err_text.lower() or "transição não autorizada" in err_text.lower():
+                    logger.info(
+                        f"[AutomationEngine] [{rule_name}] Veículo {codigo_veiculo} já na situação {target_situation} ou transição redundante: {err_text}"
+                    )
+                    return res
+                error_msg = f"[AutomationEngine] [{rule_name}] Erro ao alterar situação do veículo {codigo_veiculo} para {target_situation}: HTTP {status_code} - {err_text}"
+                logger.error(error_msg)
+                raise RuntimeError(error_msg)
             logger.info(
                 f"[AutomationEngine] [{rule_name}] Veículo {codigo_veiculo} -> Situação {target_situation} (HTTP {status_code})"
             )
+            return res
         except Exception as e:
             logger.error(
                 f"[AutomationEngine] [{rule_name}] Erro ao alterar situação do veículo {codigo_veiculo} para {target_situation}: {e}"
             )
+            raise

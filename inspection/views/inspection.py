@@ -248,9 +248,17 @@ class InspectionViewSet(
     def approve_all(self, request, pk=None):
         inspection = self.get_object()
 
-        # 1. Aprovar a vistoria (o save() altera para APROVADO_PARA_CORRECAO / 30 no Ativador)
+        # 1. Aprovar a vistoria
+        # Se houver protocolo de assinatura, desativa o sync intermediário do save() (que alterava para APROVADO_PARA_CORRECAO / 30)
+        # pois o approve_inspection_signature_process avançará diretamente para ASSINADO/AGUARDANDO PAGAMENTO / 26
+        has_signature = bool(
+            getattr(inspection, "signature_protocol_id", None)
+        )
         inspection.status = Inspection.Status.APPROVED
-        inspection.save()
+        if has_signature:
+            inspection.save(skip_activator_sync=True)
+        else:
+            inspection.save()
 
         # 2. Se houver protocolo de assinatura, aprova os signatários e avança no Ativador
         from signature.services.integration import (

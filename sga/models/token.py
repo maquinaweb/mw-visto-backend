@@ -7,6 +7,8 @@ class HinovaToken(OrganizationMixin, TimestampedMixin):
     senha = models.CharField(max_length=32)
     has_activator = models.BooleanField(default=False)
 
+    api_ativador = models.CharField(max_length=128, null=True, blank=True)
+
     api_token = models.CharField(max_length=192, null=True, blank=True)
     token_usuario = models.CharField(max_length=288, null=True, blank=True)
     token_painel = models.CharField(max_length=128, null=True, blank=True)
