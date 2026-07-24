@@ -149,6 +149,10 @@ def process_signature_integration(request, inspection, signature_data):
         )
         inspection.save()
 
+        from inspection.services.automation_engine import AutomationEngine
+
+        AutomationEngine.trigger_event("signature_created", inspection)
+
     except Exception as e:
         logger.error(f"Error creating signature protocol: {e}", exc_info=True)
         raise ValidationError(
