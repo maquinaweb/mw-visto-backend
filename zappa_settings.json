@@ -22,7 +22,7 @@
             "CLOUDFRONT_DOMAIN": "dfkaru20wnmbm.cloudfront.net",
             "SENTRY": "True"
         },
-        "memory_size": 2048,
+        "memory_size": 1024,
         "architecture": "arm64",
         "timeout_seconds": 300,
         "apigateway_version": "v2",
