@@ -130,3 +130,19 @@ class SignatureService:
                     logger.error(
                         f"Erro ao aprovar signatário {sig_id}: {sig_err}"
                     )
+
+    def get_default_by_last(self, type_term=None):
+        url = f"{self.base_url}/protocols/default-by-last/"
+        params = {}
+        if type_term:
+            params["type_term"] = type_term
+        logger.info(
+            f"Calling protocols/default-by-last on mw-sign-backend: {url}"
+        )
+        response = requests.get(
+            url, params=params, headers=self.headers, timeout=30
+        )
+        if response.status_code == 404:
+            return None
+        response.raise_for_status()
+        return response.json()
