@@ -9,6 +9,7 @@ from inspection.views import (
     InspectionMotiveViewSet,
     ProviderViewSet,
     TorryTechQueryViewSet,
+    AutomationRuleViewSet,
 )
 
 router = routers.DefaultRouter()
@@ -30,6 +31,16 @@ router.register(
 router.register("providers", ProviderViewSet, basename="provider")
 router.register(
     "torry-tech-queries", TorryTechQueryViewSet, basename="torry-tech-query"
+)
+router.register(
+    "automation-rules",
+    AutomationRuleViewSet,
+    basename="automation-rule",
+)
+router.register(
+    "activator-automation-rules",
+    AutomationRuleViewSet,
+    basename="activator-automation-rule",
 )
 
 urlpatterns = [

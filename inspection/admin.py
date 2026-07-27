@@ -1,9 +1,14 @@
-from inspection.models import InspectionMotive, Inspector, TorryTechQuery
-from inspection.models import InspectionTypeStep
-from inspection.models import InspectionType
 from django.contrib import admin
 
 from core.mixins.soft_delete_admin import SoftDeleteAdminMixin
+from inspection.models import (
+    InspectionMotive,
+    InspectionType,
+    InspectionTypeStep,
+    Inspector,
+    TorryTechQuery,
+    AutomationRule,
+)
 from inspection.models.inspection import Inspection
 from inspection.models.step import InspectionStep
 
@@ -30,6 +35,7 @@ class TorryTechQueryAdmin(SoftDeleteAdminMixin, admin.ModelAdmin):
 
 
 admin.site.register(Inspection, InspectionAdmin)
+admin.site.register(AutomationRule)
 admin.site.register(InspectionStep)
 admin.site.register(InspectionType)
 admin.site.register(InspectionTypeStep)

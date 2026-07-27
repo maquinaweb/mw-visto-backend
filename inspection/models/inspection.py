@@ -54,6 +54,7 @@ class Inspection(SoftDeleteModelMixin, OrganizationUserMixin, TimestampedMixin):
         return self.title
 
     def save(self, *args, **kwargs):
+        skip_activator_sync = kwargs.pop("skip_activator_sync", False)
         is_new = self.pk is None
         old_status = None
         if not is_new:
@@ -73,3 +74,13 @@ class Inspection(SoftDeleteModelMixin, OrganizationUserMixin, TimestampedMixin):
             if not has_rejected_steps:
                 # No steps were explicitly rejected -> reject the entire inspection (set all steps to "rejected")
                 self.steps.all().update(status="rejected")
+
+        if not skip_activator_sync and (is_new or old_status != self.status):
+            try:
+                from inspection.services.activator_sync import (
+                    sync_inspection_with_activator,
+                )
+
+                sync_inspection_with_activator(self)
+            except Exception:
+                pass

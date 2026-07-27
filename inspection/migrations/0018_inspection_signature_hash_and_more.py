@@ -4,20 +4,19 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('inspection', '0017_alter_inspection_status'),
+        ("inspection", "0017_alter_inspection_status"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='inspection',
-            name='signature_hash',
+            model_name="inspection",
+            name="signature_hash",
             field=models.CharField(blank=True, max_length=255, null=True),
         ),
         migrations.AddField(
-            model_name='inspection',
-            name='signature_protocol_id',
+            model_name="inspection",
+            name="signature_protocol_id",
             field=models.UUIDField(blank=True, null=True),
         ),
     ]
