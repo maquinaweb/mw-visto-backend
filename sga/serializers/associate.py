@@ -9,10 +9,18 @@ class AssociateSerializer(
     OrganizationCreateSerializerMixin, WritableNestedModelSerializer
 ):
     codigo_associado = serializers.CharField(validators=[])
+    codigo_beneficiario = serializers.CharField(
+        required=False, allow_blank=True, allow_null=True
+    )
 
     class Meta:
         model = Associate
         fields = ("id", "codigo_beneficiario", "codigo_associado")
+
+    def validate_codigo_beneficiario(self, value):
+        if not value or not str(value).strip():
+            return None
+        return str(value).strip()
 
     def create(self, validated_data):
         org = self.context["request"].organization_id
