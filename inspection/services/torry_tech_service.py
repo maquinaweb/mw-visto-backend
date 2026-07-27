@@ -189,8 +189,10 @@ class TorryTechService:
         success = response_json.get("success", False)
         status_consulta = response_json.get("status_consulta", None)
         message = response_json.get("message", query_record.message)
-        link_impressao = response_json.get(
-            "link_impressao", query_record.link_impressao
+        link_impressao = (
+            response_json.get("link_impressao")
+            or query_record.link_impressao
+            or ""
         )
         new_dados = response_json.get("dados_veiculo")
         new_parciais = response_json.get("parciais")
@@ -210,16 +212,18 @@ class TorryTechService:
             merged_dados = existing_dados
 
         response_json["dados_veiculo"] = merged_dados
+        response_json["link_impressao"] = link_impressao
 
         if success or (new_parciais and len(new_parciais) > 0):
-            # Verifica se as parciais ainda estão pendentes
+            # Verifica se alguma parcial ainda está pendente (sem resultado preenchido)
             parciais_pending = False
             if new_parciais and isinstance(new_parciais, list):
-                has_any_result = any(
-                    bool((p.get("Resultado") or "").strip())
+                # Se alguma parcial ainda tiver resultado em branco, continua "Processando"
+                has_empty_parcial = any(
+                    not bool((p.get("Resultado") or "").strip())
                     for p in new_parciais
                 )
-                if not has_any_result and len(new_parciais) > 0:
+                if has_empty_parcial:
                     parciais_pending = True
 
             if status_consulta == "Processando" or parciais_pending:
