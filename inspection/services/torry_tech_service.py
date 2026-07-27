@@ -51,15 +51,22 @@ class TorryTechService:
         cached_query = None
         if plate:
             cached_query = TorryTechQuery.objects.filter(
-                plate=plate, cons=cons, status_consulta="Pronta", success=True
+                plate=plate, cons=cons, status_consulta__in=["Pronta", "Concluido"], success=True
             ).first()
         if not cached_query and chassi:
             cached_query = TorryTechQuery.objects.filter(
-                chassi=chassi, cons=cons, status_consulta="Pronta", success=True
+                chassi=chassi, cons=cons, status_consulta__in=["Pronta", "Concluido"], success=True
             ).first()
 
         # If cached query is found, create a new record for this inspection copying the data
         if cached_query:
+            # If cached query is missing parciais, attempt to refresh it to get full details
+            if cached_query.id_pesquisa and not (
+                cached_query.response_data
+                and cached_query.response_data.get("parciais")
+            ):
+                cached_query = cls.refresh_query(cached_query)
+
             logger.info(
                 f"[TorryTech] Cache Hit: Encontrada consulta anterior id={cached_query.id} para "
                 f"placa={plate}/chassi={chassi}. Clonando resultados."
@@ -75,7 +82,7 @@ class TorryTechService:
                 cons=cons,
                 uf=uf or cached_query.uf,
                 id_pesquisa=cached_query.id_pesquisa,
-                status_consulta="Pronta",
+                status_consulta=cached_query.status_consulta or "Concluido",
                 success=True,
                 message="Dados recuperados do cache (pesquisa anterior)",
                 response_data=cached_query.response_data,
@@ -187,16 +194,16 @@ class TorryTechService:
             uf=uf,
             id_pesquisa=id_pesquisa,
             status_consulta=status_consulta,
-            success=True if (success or status_consulta == "Pronta") else False,
+            success=True if (success or status_consulta in ["Pronta", "Concluido"]) else False,
             message=message,
             link_impressao=link_impressao or "",
             response_data=response_json,
         )
 
-        if status_consulta != "Pronta" and id_pesquisa:
+        if id_pesquisa:
             logger.info(
-                f"[TorryTech] Cadastro realizado com sucesso na Torry Tech (id_pesquisa={id_pesquisa}). "
-                f"Consultando resultados via Api/Consulta..."
+                f"[TorryTech] Chamada realizada na Torry Tech (id_pesquisa={id_pesquisa}). "
+                f"Consultando detalhes via Api/Consulta..."
             )
             return cls.refresh_query(query_record)
 
@@ -211,14 +218,15 @@ class TorryTechService:
             )
             return query_record
 
-        # If query is already Pronta and has vehicle data, do not downgrade it
+        # If query is already completed and has full vehicle data & parciais, return cached
         if (
-            query_record.status_consulta == "Pronta"
+            query_record.status_consulta in ["Pronta", "Concluido"]
             and query_record.response_data
             and query_record.response_data.get("dados_veiculo")
+            and query_record.response_data.get("parciais")
         ):
             print(
-                f"[TorryTech] Consulta {query_record.id_pesquisa} já está Pronta. Dados: {query_record.response_data}"
+                f"[TorryTech] Consulta {query_record.id_pesquisa} já está concluída com parciais ({query_record.status_consulta}). Dados: {query_record.response_data}"
             )
             return query_record
 
