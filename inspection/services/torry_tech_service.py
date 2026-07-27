@@ -1,14 +1,13 @@
 import logging
 import requests
-from rest_framework.exceptions import ValidationError
 from decouple import config
+from rest_framework.exceptions import ValidationError
 
 from inspection.models.torry_tech_query import TorryTechQuery
 
 TORRY_TECH_CLIE = config("TORRY_TECH_CLIE", default="3099")
-TORRY_TECH_SERIAL = config(
-    "TORRY_TECH_SERIAL", default="4w88FbEQhphhx7cXKRSwN8HTgkGWVw"
-)
+TORRY_TECH_SERIAL = config("TORRY_TECH_SERIAL", default="")
+TORRY_TECH_SERIAL_CONSULTA = config("TORRY_TECH_SERIAL_CONSULTA", default="")
 TORRY_TECH_CLIE_SUB = config("TORRY_TECH_CLIE_SUB", default="")
 
 logger = logging.getLogger("observability")
@@ -24,102 +23,7 @@ class TorryTechService:
         return "https://mobilytech.torrytech.com.br/Api/Consulta"
 
     @classmethod
-    def request_query(cls, inspection, cons="83", uf=""):
-        logger.info(
-            f"[TorryTech] Iniciando requisição de consulta. Vistoria ID: {inspection.id}, "
-            f"Cons: {cons}, UF informada: {uf}"
-        )
-        vehicle = getattr(inspection, "vehicle_sga", None)
-        if not vehicle:
-            logger.warning(
-                f"[TorryTech] Falha: Vistoria {inspection.id} não possui veículo associado."
-            )
-            raise ValidationError("A vistoria não possui veículo associado.")
-
-        plate = (vehicle.plate or "").strip().upper()
-        chassi = (vehicle.chassi or "").strip().upper()
-
-        if not plate and not chassi:
-            logger.warning(
-                f"[TorryTech] Falha: Vistoria {inspection.id} não possui placa ou chassi cadastrado."
-            )
-            raise ValidationError(
-                "A vistoria não possui placa ou chassi cadastrado para o veículo."
-            )
-
-        # Check if there is already a completed query for this plate or chassi in the database
-        cached_query = None
-        if plate:
-            cached_query = TorryTechQuery.objects.filter(
-                plate=plate, cons=cons, status_consulta__in=["Pronta", "Concluido"], success=True
-            ).first()
-        if not cached_query and chassi:
-            cached_query = TorryTechQuery.objects.filter(
-                chassi=chassi, cons=cons, status_consulta__in=["Pronta", "Concluido"], success=True
-            ).first()
-
-        # If cached query is found, create a new record for this inspection copying the data
-        if cached_query:
-            # If cached query is missing parciais, attempt to refresh it to get full details
-            if cached_query.id_pesquisa and not (
-                cached_query.response_data
-                and cached_query.response_data.get("parciais")
-            ):
-                cached_query = cls.refresh_query(cached_query)
-
-            logger.info(
-                f"[TorryTech] Cache Hit: Encontrada consulta anterior id={cached_query.id} para "
-                f"placa={plate}/chassi={chassi}. Clonando resultados."
-            )
-            print(
-                f"[TorryTech] Cache Hit - Dados da Consulta Completa: {cached_query.response_data}"
-            )
-            new_query = TorryTechQuery.objects.create(
-                organization_id=inspection.organization_id,
-                inspection=inspection,
-                plate=plate or cached_query.plate,
-                chassi=chassi or cached_query.chassi,
-                cons=cons,
-                uf=uf or cached_query.uf,
-                id_pesquisa=cached_query.id_pesquisa,
-                status_consulta=cached_query.status_consulta or "Concluido",
-                success=True,
-                message="Dados recuperados do cache (pesquisa anterior)",
-                response_data=cached_query.response_data,
-                link_impressao=cached_query.link_impressao,
-            )
-            return new_query
-
-        # Clean up failed queries so they can be retried
-        TorryTechQuery.objects.filter(
-            inspection=inspection, cons=cons, status_consulta="Falha"
-        ).delete()
-
-        # Otherwise, check if there's an ongoing (processing) query for this inspection
-        existing_query = TorryTechQuery.objects.filter(
-            inspection=inspection, cons=cons
-        ).first()
-
-        if existing_query:
-            logger.info(
-                f"[TorryTech] Consulta já existente para a vistoria {inspection.id} e cons {cons}. "
-                f"Status: {existing_query.status_consulta}"
-            )
-            if (
-                existing_query.status_consulta == "Processando"
-                and existing_query.id_pesquisa
-            ):
-                logger.info(
-                    f"[TorryTech] Consulta em processamento (ID: {existing_query.id_pesquisa}). "
-                    f"Iniciando atualização de status..."
-                )
-                return cls.refresh_query(existing_query)
-            return existing_query
-
-        # Create new query record and execute
-        param = "PLACA" if plate else "CHASSI"
-        cv = plate if plate else chassi
-
+    def _execute_especial_php(cls, cons, param, cv, uf=""):
         params = {
             "clie": TORRY_TECH_CLIE,
             "serial": TORRY_TECH_SERIAL,
@@ -133,20 +37,57 @@ class TorryTechService:
             params["uf"] = uf
 
         logger.info(
-            f"[TorryTech] Chamando API Especial.php. Param={param}, cv={cv}, uf={uf}"
+            f"[TorryTech] Chamando Especial.php. Param={param}, cv={cv}, uf={uf}"
         )
         try:
             response = requests.get(
                 cls.get_query_url(), params=params, timeout=15
             )
-            response_json = response.json()
+            return response.json()
         except Exception as e:
             logger.exception(
-                f"[TorryTech] Falha ao conectar com a API Torry Tech Especial.php: {str(e)}"
+                f"[TorryTech] Erro ao conectar com Especial.php: {str(e)}"
             )
             raise ValidationError(
                 f"Erro ao conectar com a Torry Tech: {str(e)}"
             )
+
+    @classmethod
+    def request_query(cls, inspection, cons="83", uf=""):
+        logger.info(
+            f"[TorryTech] Solicitando consulta veicular. Vistoria ID: {inspection.id}, "
+            f"Cons: {cons}, UF: {uf}"
+        )
+        vehicle = getattr(inspection, "vehicle_sga", None)
+        if not vehicle:
+            raise ValidationError("A vistoria não possui veículo associado.")
+
+        plate = (vehicle.plate or "").strip().upper()
+        chassi = (vehicle.chassi or "").strip().upper()
+
+        if not plate and not chassi:
+            raise ValidationError(
+                "A vistoria não possui placa ou chassi cadastrado para o veículo."
+            )
+
+        # Se já existe uma consulta registrada para ESTA vistoria com o mesmo cons
+        existing_query = TorryTechQuery.objects.filter(
+            inspection=inspection, cons=cons
+        ).first()
+
+        if existing_query:
+            if existing_query.status_consulta == "Falha":
+                existing_query.delete()
+            elif existing_query.id_pesquisa:
+                return cls.refresh_query(existing_query)
+            else:
+                return existing_query
+
+        # Tenta primeira consulta (por PLACA se existir, senão por CHASSI)
+        param = "PLACA" if plate else "CHASSI"
+        cv = plate if plate else chassi
+
+        response_json = cls._execute_especial_php(cons, param, cv, uf)
 
         success = response_json.get("success", False)
         message = response_json.get("message", "")
@@ -155,18 +96,32 @@ class TorryTechService:
         dados_veiculo = response_json.get("dados_veiculo")
         link_impressao = response_json.get("link_impressao")
 
-        logger.info(
-            f"[TorryTech] Resposta da API Especial.php: success={success}, message='{message}', "
-            f"id_pesquisa={id_pesquisa}, status_consulta={status_consulta}, tem_dados_veiculo={bool(dados_veiculo)}"
-        )
-        print(f"[TorryTech] Resposta Completa Especial.php: {response_json}")
-
-        # Check for already performed query message
+        # Se a consulta por PLACA disser que já foi realizada, mas tivermos o CHASSI disponível,
+        # tentamos consultar por CHASSI para obter um id_pesquisa atualizado e ativo na API
         is_already_done = "já foi realizada" in message.lower()
+        if is_already_done and param == "PLACA" and chassi:
+            logger.info(
+                f"[TorryTech] Consulta por PLACA informou 'já foi realizada'. Tentando via CHASSI={chassi}..."
+            )
+            chassi_response = cls._execute_especial_php(
+                cons, "CHASSI", chassi, uf
+            )
+            if chassi_response.get("id_pesquisa") or chassi_response.get(
+                "success"
+            ):
+                response_json = chassi_response
+                success = response_json.get("success", False)
+                message = response_json.get("message", "")
+                id_pesquisa = response_json.get("id_pesquisa")
+                status_consulta = response_json.get(
+                    "status_consulta", "Processando"
+                )
+                dados_veiculo = response_json.get("dados_veiculo")
+                link_impressao = response_json.get("link_impressao")
 
         if not success and not is_already_done and not dados_veiculo:
             logger.error(f"[TorryTech] Consulta retornou erro: {message}")
-            query_record = TorryTechQuery.objects.create(
+            return TorryTechQuery.objects.create(
                 organization_id=inspection.organization_id,
                 inspection=inspection,
                 plate=plate,
@@ -179,11 +134,6 @@ class TorryTechService:
                 message=message,
                 response_data=response_json,
             )
-            return query_record
-
-        # If Especial.php already returned full vehicle data, mark as "Pronta"
-        if dados_veiculo or (success and link_impressao):
-            status_consulta = "Pronta"
 
         query_record = TorryTechQuery.objects.create(
             organization_id=inspection.organization_id,
@@ -194,17 +144,15 @@ class TorryTechService:
             uf=uf,
             id_pesquisa=id_pesquisa,
             status_consulta=status_consulta,
-            success=True if (success or status_consulta in ["Pronta", "Concluido"]) else False,
+            success=True
+            if (success or status_consulta in ["Pronta", "Concluido"])
+            else False,
             message=message,
             link_impressao=link_impressao or "",
             response_data=response_json,
         )
 
         if id_pesquisa:
-            logger.info(
-                f"[TorryTech] Chamada realizada na Torry Tech (id_pesquisa={id_pesquisa}). "
-                f"Consultando detalhes via Api/Consulta..."
-            )
             return cls.refresh_query(query_record)
 
         return query_record
@@ -212,32 +160,18 @@ class TorryTechService:
     @classmethod
     def refresh_query(cls, query_record):
         if not query_record.id_pesquisa:
-            logger.warning(
-                f"[TorryTech] Falha ao tentar atualizar status da consulta {query_record.id}: "
-                f"id_pesquisa está ausente."
-            )
-            return query_record
-
-        # If query is already completed and has full vehicle data & parciais, return cached
-        if (
-            query_record.status_consulta in ["Pronta", "Concluido"]
-            and query_record.response_data
-            and query_record.response_data.get("dados_veiculo")
-            and query_record.response_data.get("parciais")
-        ):
-            print(
-                f"[TorryTech] Consulta {query_record.id_pesquisa} já está concluída com parciais ({query_record.status_consulta}). Dados: {query_record.response_data}"
-            )
             return query_record
 
         params = {
             "clie": TORRY_TECH_CLIE,
-            "serial": TORRY_TECH_SERIAL,
+            "serial": TORRY_TECH_SERIAL_CONSULTA,
             "id_consulta": query_record.id_pesquisa,
         }
+        if TORRY_TECH_CLIE_SUB:
+            params["clie_sub"] = TORRY_TECH_CLIE_SUB
 
         logger.info(
-            f"[TorryTech] Chamando API de Consulta para id_consulta={query_record.id_pesquisa}"
+            f"[TorryTech] Consultando resultados via Api/Consulta para id_consulta={query_record.id_pesquisa}"
         )
         try:
             response = requests.get(
@@ -246,7 +180,7 @@ class TorryTechService:
             response_json = response.json()
         except Exception as e:
             logger.exception(
-                f"[TorryTech] Erro ao conectar com API de Consulta para id_consulta={query_record.id_pesquisa}: {str(e)}"
+                f"[TorryTech] Erro ao conectar com Api/Consulta: {str(e)}"
             )
             query_record.message = f"Erro ao atualizar dados: {str(e)}"
             query_record.save()
@@ -258,32 +192,52 @@ class TorryTechService:
         link_impressao = response_json.get(
             "link_impressao", query_record.link_impressao
         )
-        dados_veiculo = response_json.get("dados_veiculo")
+        new_dados = response_json.get("dados_veiculo")
+        new_parciais = response_json.get("parciais")
 
-        logger.info(
-            f"[TorryTech] Resposta da API de Consulta: success={success}, status_consulta={status_consulta}, "
-            f"message='{message}'"
-        )
-        print(f"[TorryTech] Resposta Completa Api/Consulta: {response_json}")
+        # Preserva dados do veículo da etapa 1 caso a etapa 2 retorne dados_veiculo como array vazio
+        existing_dados = {}
+        if query_record.response_data and isinstance(
+            query_record.response_data.get("dados_veiculo"), dict
+        ):
+            existing_dados = (
+                query_record.response_data.get("dados_veiculo") or {}
+            )
 
-        if success or dados_veiculo:
-            query_record.status_consulta = status_consulta or "Pronta"
+        if isinstance(new_dados, dict) and new_dados:
+            merged_dados = {**existing_dados, **new_dados}
+        else:
+            merged_dados = existing_dados
+
+        response_json["dados_veiculo"] = merged_dados
+
+        if success or (new_parciais and len(new_parciais) > 0):
+            # Verifica se as parciais ainda estão pendentes
+            parciais_pending = False
+            if new_parciais and isinstance(new_parciais, list):
+                has_any_result = any(
+                    bool((p.get("Resultado") or "").strip())
+                    for p in new_parciais
+                )
+                if not has_any_result and len(new_parciais) > 0:
+                    parciais_pending = True
+
+            if status_consulta == "Processando" or parciais_pending:
+                final_status = "Processando"
+            else:
+                final_status = status_consulta or "Pronta"
+
+            query_record.status_consulta = final_status
             query_record.message = message
             query_record.link_impressao = link_impressao
             query_record.response_data = response_json
             query_record.success = True
             query_record.save()
             logger.info(
-                f"[TorryTech] Consulta {query_record.id_pesquisa} atualizada com sucesso para status={query_record.status_consulta}."
+                f"[TorryTech] Consulta {query_record.id_pesquisa} atualizada para status={query_record.status_consulta}."
             )
         else:
-            has_existing_dados = query_record.response_data and bool(
-                query_record.response_data.get("dados_veiculo")
-            )
-            if has_existing_dados:
-                query_record.status_consulta = "Pronta"
-                query_record.success = True
-            elif (
+            if (
                 "processando" in message.lower()
                 or status_consulta == "Processando"
             ):
@@ -291,12 +245,18 @@ class TorryTechService:
                 query_record.message = message
                 query_record.response_data = response_json
             else:
-                query_record.status_consulta = "Falha"
-                query_record.message = message
-                query_record.response_data = response_json
-                logger.error(
-                    f"[TorryTech] Consulta {query_record.id_pesquisa} falhou durante atualização: {message}"
+                has_valid_parciais = (
+                    query_record.response_data
+                    and isinstance(
+                        query_record.response_data.get("parciais"), list
+                    )
+                    and len(query_record.response_data.get("parciais")) > 0
                 )
+                if not has_valid_parciais:
+                    query_record.status_consulta = "Falha"
+                    query_record.message = message
+                    query_record.response_data = response_json
+                    query_record.success = False
             query_record.save()
 
         return query_record
