@@ -47,7 +47,7 @@ class VeiculoHinovaEndpoints:
         return response
 
     def listar_tipo_veiculo(self):
-        url = "listar/tipo-veiculo/todos"
+        url = "listar/tipo-veiculo/ativo"
         response = self.client.get(url)
         return response
 

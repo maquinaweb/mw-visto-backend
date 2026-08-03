@@ -19,6 +19,7 @@ class InspectionType(
         blank=True,
         null=True,
     )
+    vehicle_types = models.JSONField(default=list, blank=True)
 
     class Meta:
         verbose_name = "Tipo de Vistoria"

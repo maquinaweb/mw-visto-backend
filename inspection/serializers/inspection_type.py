@@ -18,6 +18,8 @@ class InspectionTypeSerializer(
             "id",
             "name",
             "description",
+            "provider",
+            "vehicle_types",
             "steps",
             "created_at",
             "updated_at",

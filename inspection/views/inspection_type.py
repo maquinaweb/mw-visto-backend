@@ -47,3 +47,67 @@ class InspectionTypeViewSet(
             )
 
         return Response(data)
+
+    @action(detail=False, methods=["get"], url_path="vehicle-types")
+    def vehicle_types(self, request):
+        org_id = getattr(request, "organization_id", None)
+        if not org_id:
+            return Response({"results": []})
+
+        current_id = request.query_params.get("current_id")
+
+        # 1. Buscar tipos de veículo ativos na Hinova
+        try:
+            from core.services.hinova.hinova import HinovaEndPoints
+
+            res = HinovaEndPoints(org_id).veiculo.listar_tipo_veiculo()
+            hinova_types = res.json() if res and res.status_code == 200 else []
+        except Exception as e:
+            import logging
+
+            logging.getLogger(__name__).error(
+                f"Erro ao buscar tipos de veículo na Hinova: {e}"
+            )
+            hinova_types = []
+
+        # 2. Mapear códigos já atribuídos a outros tipos de vistoria
+        qs = InspectionType.objects.filter(organization_id=org_id)
+        if current_id:
+            qs = qs.exclude(id=current_id)
+
+        assigned = {
+            str(vt.get("id") if isinstance(vt, dict) else vt): itype.name
+            for itype in qs
+            for vt in (itype.vehicle_types or [])
+        }
+
+        # 3. Mapear resultado formatado com status disabled
+        results = []
+        for item in hinova_types if isinstance(hinova_types, list) else []:
+            code = str(
+                item.get("codigo_tipo")
+                or item.get("codigo")
+                or item.get("id")
+                or ""
+            )
+            name = str(
+                item.get("descricao_tipo")
+                or item.get("descricao")
+                or item.get("nome")
+                or ""
+            )
+            if not code:
+                continue
+
+            used_by = assigned.get(code)
+            results.append(
+                {
+                    "id": code,
+                    "name": f"{name} (Já usado em: {used_by})"
+                    if used_by
+                    else name,
+                    "disabled": bool(used_by),
+                }
+            )
+
+        return Response({"results": results})

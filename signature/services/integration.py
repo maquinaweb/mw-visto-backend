@@ -1,6 +1,5 @@
 import logging
 import urllib.parse
-from rest_framework.exceptions import ValidationError
 from signature.services.signature import SignatureService
 
 logger = logging.getLogger(__name__)
@@ -26,14 +25,22 @@ def process_signature_integration(request, inspection, signature_data):
         # 1. Emit term PDF inside SGA via mw-sign-backend
         associate_raw = contact_data.get("associate")
         associate_data = associate_raw or {}
+        term_code = (
+            term.get("codigo_sga")
+            or term.get("codigo_termo")
+            or term.get("codigo")
+            or term.get("id")
+        )
+        tool_name = term.get("ferramenta") or "hinova"
+
         doc = sig_service.create_term_pdf(
-            term_code=term.get("codigo_sga"),
+            term_code=term_code,
             associate_code=associate_data.get("codigo_associado", ""),
             beneficiary_code=associate_data.get("codigo_beneficiario", ""),
             vehicle_code=vehicle_sga_data.get("codigo_veiculo"),
             event_code=vehicle_sga_data.get("codigo_evento"),
             plate=vehicle_sga_data.get("plate"),
-            tool_name=term.get("ferramenta"),
+            tool_name=tool_name,
         )
 
         plate_val = vehicle_sga_data.get("plate")
@@ -155,11 +162,6 @@ def process_signature_integration(request, inspection, signature_data):
 
     except Exception as e:
         logger.error(f"Error creating signature protocol: {e}", exc_info=True)
-        raise ValidationError(
-            {
-                "signature_protocol": f"Falha ao gerar o termo no MW Sign: {str(e)}"
-            }
-        )
 
 
 def approve_inspection_signature_process(

@@ -38,6 +38,34 @@ class InspectionViewSet(
         signature_data = serializer.validated_data.pop("signature", None) or {}
         instance = serializer.save()
 
+        if not (signature_data and signature_data.get("term")):
+            try:
+                from signature.services.signature import SignatureService
+
+                auth_header = self.request.headers.get("Authorization")
+                org_header = self.request.headers.get("X-Organization") or (
+                    str(self.request.organization_id)
+                    if hasattr(self.request, "organization_id")
+                    and self.request.organization_id
+                    else None
+                )
+                sig_service = SignatureService(
+                    auth_header=auth_header, org_header=org_header
+                )
+                sig_defaults = sig_service.get_default_by_last()
+                if sig_defaults and sig_defaults.get("term"):
+                    auth_types = set(sig_defaults.get("authentications") or [])
+                    signature_data = {
+                        "term": sig_defaults.get("term"),
+                        "auth_document": "document_identify" in auth_types,
+                        "auth_selfie": "selfie" in auth_types,
+                        "auth_manual": "manual_approval" in auth_types,
+                        "auth_email": "email" in auth_types,
+                        "auth_sms": "sms" in auth_types,
+                    }
+            except Exception as e:
+                logger.error(f"Error fetching default term for inspection: {e}")
+
         if signature_data and signature_data.get("term"):
             from signature.services.integration import (
                 process_signature_integration,
